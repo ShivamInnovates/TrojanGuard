@@ -4,7 +4,13 @@ TrojanGuard — Central configuration.
 All tunable constants live here.  Never import from this module
 in the ML training scripts (use ml/feature_names.json directly).
 """
+import os
 from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Server / Port
+# ---------------------------------------------------------------------------
+BACKEND_PORT: int = int(os.getenv("BACKEND_PORT", "8000"))
 
 # ---------------------------------------------------------------------------
 # Paths

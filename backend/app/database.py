@@ -69,6 +69,15 @@ CREATE TABLE IF NOT EXISTS iocs (
     value        TEXT    NOT NULL,
     is_simulated INTEGER NOT NULL DEFAULT 1
 );
+
+-- Indexes for performance on filtering, search, sorting, and joins
+CREATE INDEX IF NOT EXISTS idx_analyses_sha256 ON analyses(sha256);
+CREATE INDEX IF NOT EXISTS idx_analyses_timestamp ON analyses(timestamp);
+CREATE INDEX IF NOT EXISTS idx_analyses_classification ON analyses(classification);
+CREATE INDEX IF NOT EXISTS idx_analyses_risk_score ON analyses(risk_score);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_analysis_id ON behavior_events(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_network_events_analysis_id ON network_events(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_iocs_analysis_id ON iocs(analysis_id);
 """
 
 
@@ -86,6 +95,7 @@ def init_db(db_path: Path | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         conn.executescript(_DDL)
         conn.commit()
 

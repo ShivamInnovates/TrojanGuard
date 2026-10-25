@@ -37,8 +37,8 @@
 
 ## Phases
 
-- [ ] **Phase 1 — Workspace Bootstrap & Project Skeleton**
-- [ ] **Phase 2 — Database, Schemas & /api/health**
+- [x] **Phase 1 — Workspace Bootstrap & Project Skeleton**
+- [x] **Phase 2 — Database, Schemas & /api/health**
 - [ ] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
 - [ ] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
 - [ ] **Phase 5 — Detection & Risk Engine + Demo Scenarios**
@@ -81,15 +81,16 @@ ml/real/.gitkeep
 schemas for all domain objects; `GET /api/health` returning real status;
 `tests/test_database.py` covering persistence and FK constraints.
 
-Files created:
+Files created / updated:
 ```
-backend/app/models/__init__.py
-backend/app/models/schemas.py       (Pydantic v2 models)
-backend/app/api/__init__.py
-backend/app/api/health.py           (GET /api/health)
+backend/app/models/schemas.py       (Pydantic v2 models: 4 tables, Report, Health, Error)
+backend/app/services/repository.py  (insert_analysis atomic, get_report, list_analyses, aggregates)
+backend/app/api/health.py           (GET /api/health — real DB probe, table count, ML status)
+backend/app/main.py                 (Global exception handlers returning ErrorResponse JSON, lifespan)
+backend/app/database.py             (Added 7 performance indexes, foreign key pragma)
 tests/__init__.py
-tests/conftest.py                   (shared fixtures: tmp DB path, test client)
-tests/test_database.py              (init, round-trip, FK enforcement)
+tests/conftest.py                   (Isolated temporary DB per test + TestClient fixture)
+tests/test_database.py              (8 unit & integration tests)
 ```
 
 ---

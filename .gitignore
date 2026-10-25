@@ -28,11 +28,11 @@ ml/real/.venv/
 *.sqlite
 *.sqlite3
 
-# ML model artifacts (large binaries — keep feature_names.json and metrics)
-ml/model.pkl
-ml/scaler.pkl
-ml/real/model_real.pkl
-ml/real/scaler_real.pkl
+# ML model artifacts (keep small synthetic model.pkl in git, ignore real model binaries)
+*.pkl
+!ml/model.pkl
+ml/real/*.pkl
+
 
 # Dataset files (may be large; user downloads separately)
 ml/data/raw/*.csv

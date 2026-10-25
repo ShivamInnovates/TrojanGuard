@@ -9,17 +9,33 @@
 
 *Full README written in Phase 8. See `docs/PROGRESS.md` for build status.*
 
-## Quick start (after full build)
+## Setup and Execution Commands
 
+### Backend Setup & Execution
 ```bash
-# Backend
-cd backend && source .venv/bin/activate
-uvicorn app.main:app --reload --port 8000
+cd backend
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 
-# Frontend (separate terminal)
-cd frontend && npm run dev
+# Run server (default port 8000, or BACKEND_PORT=8001 if port 8000 is occupied)
+uvicorn app.main:app --port 8000
+# or if port 8000 is busy:
+# BACKEND_PORT=8001 uvicorn app.main:app --port 8001
+```
 
-# ML training
+### Frontend Setup & Execution
+```bash
+cd frontend
+npm install
+
+# Run frontend dev server (configured to proxy /api to BACKEND_PORT, default 8000)
+# If using a custom backend port: BACKEND_PORT=8001 npm run dev
+npm run dev
+```
+
+### ML Training
+```bash
 cd ml && python train.py
 ```
 
