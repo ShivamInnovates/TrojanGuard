@@ -1,0 +1,63 @@
+# TrojanGuard backend dependencies
+# Python: 3.12.15 (via uv — Python 3.14 rejected: numpy 2.2.5 has no wheel
+#         for 3.14 and fails to compile from source on this system)
+# Generated: 2026-10-25  (uv pip install output — all versions exact)
+#
+# To install:
+#   cd backend
+#   uv venv --python 3.12 .venv
+#   source .venv/bin/activate
+#   uv pip install -r requirements.txt
+
+# ── Web framework ──────────────────────────────────────────────────────
+fastapi==0.115.12
+starlette==0.46.2
+uvicorn==0.34.3
+httptools==0.9.0
+uvloop==0.23.0
+watchfiles==1.3.0
+websockets==17.3
+python-dotenv==1.2.4
+pyyaml==6.0.3
+
+# ── Validation ────────────────────────────────────────────────────────
+pydantic==2.11.4
+pydantic-core==2.33.2
+annotated-types==0.8.0
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+
+# ── File upload ───────────────────────────────────────────────────────
+python-multipart==0.0.20
+
+# ── HTTP (async) ──────────────────────────────────────────────────────
+httpx==0.28.1
+httpcore==1.0.9
+anyio==4.15.1
+h11==0.16.0
+idna==3.20
+certifi==2026.10.23
+
+# ── Data / ML ─────────────────────────────────────────────────────────
+numpy==2.2.5
+pandas==2.2.3
+scikit-learn==1.6.1
+scipy==1.18.1
+joblib==1.4.2
+threadpoolctl==3.7.0
+python-dateutil==3.0.0
+pytz==2026.5
+tzdata==2026.5
+six==1.17.0
+
+# ── Static analysis ───────────────────────────────────────────────────
+pefile==2023.2.7
+
+# ── Testing ───────────────────────────────────────────────────────────
+pytest==8.3.5
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+
+# ── Stdlib (no package needed) ────────────────────────────────────────
+# sqlite3, hashlib, pathlib, contextlib, datetime — all standard library

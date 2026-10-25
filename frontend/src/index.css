@@ -1,0 +1,98 @@
+/*
+ * TrojanGuard — Global design system
+ *
+ * Tailwind CSS v4 — uses @import "tailwindcss" and @theme for tokens.
+ * No tailwind.config.js required; all customisation lives here.
+ *
+ * Colour palette
+ * --------------
+ * Background:  --color-bg-*  (dark navy)
+ * Surface:     --color-surface-*
+ * Accent:      --color-cyan-*
+ * Risk levels: --color-risk-*  (green / amber / orange / red)
+ * Text:        --color-text-*
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* ── Typography ─────────────────────────────────────────────────── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ── Background (dark navy) ─────────────────────────────────────── */
+  --color-bg-base:    hsl(220 30% 7%);
+  --color-bg-subtle:  hsl(220 28% 9%);
+  --color-bg-muted:   hsl(220 26% 11%);
+
+  /* ── Surface (card, panel) ──────────────────────────────────────── */
+  --color-surface-1:  hsl(220 24% 13%);
+  --color-surface-2:  hsl(220 22% 16%);
+  --color-surface-3:  hsl(220 20% 20%);
+
+  /* ── Border ─────────────────────────────────────────────────────── */
+  --color-border:     hsl(220 18% 24%);
+  --color-border-subtle: hsl(220 18% 20%);
+
+  /* ── Text ───────────────────────────────────────────────────────── */
+  --color-text-primary:   hsl(210 40% 96%);
+  --color-text-secondary: hsl(215 20% 65%);
+  --color-text-muted:     hsl(215 16% 47%);
+
+  /* ── Accent (cyan/blue) ─────────────────────────────────────────── */
+  --color-accent:         hsl(197 100% 47%);
+  --color-accent-dim:     hsl(197 80% 36%);
+  --color-accent-subtle:  hsl(197 60% 16%);
+
+  /* ── Risk severity ──────────────────────────────────────────────── */
+  --color-risk-low:       hsl(142 69% 45%);      /* green  */
+  --color-risk-medium:    hsl(45  95% 55%);       /* amber  */
+  --color-risk-high:      hsl(28  95% 55%);       /* orange */
+  --color-risk-critical:  hsl(0   85% 58%);       /* red    */
+
+  /* Dim variants for backgrounds */
+  --color-risk-low-bg:      hsl(142 40% 12%);
+  --color-risk-medium-bg:   hsl(45  50% 12%);
+  --color-risk-high-bg:     hsl(28  50% 12%);
+  --color-risk-critical-bg: hsl(0   40% 12%);
+
+  /* ── Shadows ────────────────────────────────────────────────────── */
+  --shadow-card:  0 1px 3px 0 hsl(220 30% 4% / 0.6),
+                  0 1px 2px -1px hsl(220 30% 4% / 0.6);
+  --shadow-panel: 0 4px 16px -4px hsl(220 30% 4% / 0.7);
+}
+
+/* ── Base styles ────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  font-size: 14px;           /* compact SOC dashboard scale */
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ── Scrollbar (webkit) ─────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 6px; height: 6px; }
+::-webkit-scrollbar-track    { background: var(--color-bg-subtle); }
+::-webkit-scrollbar-thumb    { background: var(--color-surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border); }
+
+/* ── Utility overrides ──────────────────────────────────────────────── */
+code, pre {
+  font-family: var(--font-mono);
+}

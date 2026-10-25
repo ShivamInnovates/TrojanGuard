@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.venv*/
+backend/.venv/
+ml/real/.venv/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML model artifacts (large binaries — keep feature_names.json and metrics)
+ml/model.pkl
+ml/scaler.pkl
+ml/real/model_real.pkl
+ml/real/scaler_real.pkl
+
+# Dataset files (may be large; user downloads separately)
+ml/data/raw/*.csv
+ml/data/raw/*.parquet
+ml/data/raw/*.zip
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+.npm/
+
+# Build outputs
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
