@@ -39,9 +39,9 @@
 
 - [x] **Phase 1 — Workspace Bootstrap & Project Skeleton**
 - [x] **Phase 2 — Database, Schemas & /api/health**
-- [ ] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
+- [x] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
 - [ ] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
-- [ ] **Phase 5 — Detection & Risk Engine + Demo Scenarios**
+- [ ] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 6 — Frontend (Pages + Components + Design System)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
@@ -87,30 +87,35 @@ backend/app/models/schemas.py       (Pydantic v2 models: 4 tables, Report, Healt
 backend/app/services/repository.py  (insert_analysis atomic, get_report, list_analyses, aggregates)
 backend/app/api/health.py           (GET /api/health — real DB probe, table count, ML status)
 backend/app/main.py                 (Global exception handlers returning ErrorResponse JSON, lifespan)
-backend/app/database.py             (Added 7 performance indexes, foreign key pragma)
+backend/app/database.py             (Added 7 performance indexes, foreign key pragma, features_json)
 tests/__init__.py
 tests/conftest.py                   (Isolated temporary DB per test + TestClient fixture)
-tests/test_database.py              (8 unit & integration tests)
+tests/test_database.py              (9 unit & integration tests)
 ```
 
 ---
 
 ## Phase 3 — Analysis Pipeline (Static + Behavioral + Network)
 
-**Goal:** Real SHA-256, 10 MB upload guard, magic-byte file-type detection,
-optional PE metadata, simulated behavioral + network events, IOC construction,
-feature vector extraction — all callable as pure functions.
+**Goal:** Real SHA-256, 10 MB in-memory upload guard, magic-byte file-type detection,
+PE headers/imports/sections parsing via pefile with fast_load, safe fallback on
+corrupt/unsupported formats, simulated behavioral + network telemetry (RFC 5737 IPs),
+IOC construction strictly from observed data, and 9-feature vector extraction with
+an observed_mask. Note: `services/pipeline.py` moves to Phase 5 since it orchestrates
+the ML classifier and risk engine.
 
-Files created:
+Files created / updated:
 ```
-backend/app/analysis/__init__.py
-backend/app/analysis/static.py          (SHA-256, size guard, magic, pefile)
-backend/app/analysis/behavioral.py      (simulated process/file/persistence events)
-backend/app/analysis/network.py         (simulated connection/DNS telemetry)
-backend/app/analysis/ioc.py             (IOC record construction)
-backend/app/analysis/feature_extractor.py  (indicators -> feature dict)
-backend/app/services/__init__.py
-backend/app/services/pipeline.py        (THE single pipeline function)
+backend/app/config.py                     (FEATURE_NAMES list, SUSPICIOUS_IMPORTS set)
+backend/app/analysis/exceptions.py        (UploadSizeExceededError HTTP 413)
+backend/app/analysis/static.py            (analyze_bytes, SHA-256, entropy, magic bytes, pefile)
+backend/app/analysis/behavior.py          (deterministic seeded host behavioral telemetry)
+backend/app/analysis/behavioral.py        (alias re-export for backwards compatibility)
+backend/app/analysis/network.py           (deterministic seeded network telemetry, RFC 5737 IPs)
+backend/app/analysis/ioc.py               (IOC builder from observed hashes/IPs/domains/ports)
+backend/app/analysis/feature_extractor.py (9-feature vector + observed_mask)
+backend/app/analysis/__init__.py          (public exports)
+tests/test_analysis.py                    (10 unit tests covering all analysis requirements)
 ```
 
 ---
@@ -144,6 +149,7 @@ endpoints backed by real SQL.
 
 Files created:
 ```
+backend/app/services/pipeline.py      (THE single pipeline function: features -> classifier -> risk engine -> DB)
 backend/app/services/risk_engine.py   (weighted scoring, evidence list)
 backend/app/demo/__init__.py
 backend/app/demo/scenarios.py         (3 scenario definitions)

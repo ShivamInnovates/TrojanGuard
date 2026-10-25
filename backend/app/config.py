@@ -48,6 +48,101 @@ RISK_LEVEL_HIGH_MAX: int = 80
 # Above 80 → Critical
 
 # ---------------------------------------------------------------------------
+# ML Feature Names (locked in exact order)
+# ---------------------------------------------------------------------------
+FEATURE_NAMES: list[str] = [
+    "file_entropy",
+    "import_count",
+    "suspicious_imports",
+    "process_count",
+    "file_events",
+    "network_connections",
+    "dns_requests",
+    "repeated_connections",
+    "persistence_indicator",
+]
+
+# ---------------------------------------------------------------------------
+# Suspicious Imports Whitelist / Flags (case-insensitive)
+# Well-known API names that defenders and heuristic engines flag
+# ---------------------------------------------------------------------------
+SUSPICIOUS_IMPORTS: set[str] = {
+    # Process Injection / Memory Manipulation
+    "virtualalloc",
+    "virtualallocex",
+    "virtualprotect",
+    "virtualprotectex",
+    "writeprocessmemory",
+    "readprocessmemory",
+    "createremotethread",
+    "openprocess",
+    "queueuserapc",
+    "ntqueueapcthread",
+    "setwindowshookexa",
+    "setwindowshookexw",
+    "ntmapviewofsection",
+    "zwmapviewofsection",
+    "suspendthread",
+    "resumethread",
+    "getthreadcontext",
+    "setthreadcontext",
+    # Dynamic Loading / Linking
+    "loadlibrarya",
+    "loadlibraryw",
+    "loadlibraryexa",
+    "loadlibraryexw",
+    "getprocaddress",
+    "ldrloaddll",
+    # Process Execution
+    "winexec",
+    "shellexecutea",
+    "shellexecutew",
+    "shellexecuteexa",
+    "shellexecuteexw",
+    "createprocessa",
+    "createprocessw",
+    "createprocessinternalw",
+    # Network / Download APIs
+    "urldownloadtofilea",
+    "urldownloadtofilew",
+    "urldownloadtocachefilea",
+    "urldownloadtocachefilew",
+    "internetopena",
+    "internetopenw",
+    "internetopenurla",
+    "internetopenurlw",
+    "internetconnecta",
+    "internetconnectw",
+    "httpsendrequesta",
+    "httpsendrequestw",
+    "wsastartup",
+    "connect",
+    "send",
+    "recv",
+    # Registry / Persistence
+    "regsetvalueexa",
+    "regsetvalueexw",
+    "regcreatekeyexa",
+    "regcreatekeyexw",
+    "regopenkeyexa",
+    "regopenkeyexw",
+    "regdeletevaluea",
+    "regdeletevaluew",
+    # Evasion / Anti-Analysis
+    "isdebuggerpresent",
+    "checkremotedebuggerpresent",
+    "outputdebugstringa",
+    "outputdebugstringw",
+    "ntqueryinformationprocess",
+    # Token / Privilege Manipulation
+    "adjusttokenprivileges",
+    "lookupprivilegevaluea",
+    "lookupprivilegevaluew",
+    "openprocesstoken",
+    "impersonateself",
+}
+
+# ---------------------------------------------------------------------------
 # Risk-engine feature weights
 # Each weight is the maximum contribution that indicator can add.
 # Weights must sum to 100 or be scaled; the engine clamps the total to [0,100].
