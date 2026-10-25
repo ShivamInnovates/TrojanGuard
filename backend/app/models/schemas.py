@@ -35,6 +35,7 @@ class AnalysisBase(BaseModel):
     risk_level: RiskLevel
     analysis_source: AnalysisSource = "upload"
     summary: str = ""
+    features_json: str | None = None
 
 
 class AnalysisCreate(AnalysisBase):

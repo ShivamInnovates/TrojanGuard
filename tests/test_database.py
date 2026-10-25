@@ -74,8 +74,8 @@ def test_persistence_across_new_connection(temp_db_path: Path):
             INSERT INTO analyses (
                 filename, sha256, file_size, file_type, timestamp,
                 classification, confidence, risk_score, risk_level,
-                analysis_source, summary
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                analysis_source, summary, features_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 "sample_persist.exe",
@@ -89,6 +89,7 @@ def test_persistence_across_new_connection(temp_db_path: Path):
                 "Low",
                 "upload",
                 "Normal system executable test",
+                '{"file_entropy": 3.4, "import_count": 22}',
             ),
         )
 
@@ -102,6 +103,40 @@ def test_persistence_across_new_connection(temp_db_path: Path):
         assert row["classification"] == "Benign"
         assert row["risk_score"] == 15
         assert row["risk_level"] == "Low"
+        assert row["features_json"] == '{"file_entropy": 3.4, "import_count": 22}'
+
+
+def test_features_json_column_persistence_and_retrieval(temp_db_path: Path):
+    """Verify storing feature vector as JSON in features_json column."""
+    feat_payload = '{"file_entropy": 7.82, "network_connections": 14, "persistence_indicator": 1}'
+    report = insert_analysis(
+        analysis_data=AnalysisCreate(
+            filename="trojan_features.exe",
+            sha256="cc" * 32,
+            file_size=8192,
+            file_type="PE32",
+            timestamp="2026-10-25T13:00:00Z",
+            classification="Trojan-like",
+            confidence=0.96,
+            risk_score=92,
+            risk_level="Critical",
+            analysis_source="upload",
+            summary="Features JSON test",
+            features_json=feat_payload,
+        ),
+        db_path=temp_db_path,
+    )
+    assert report.analysis.features_json == feat_payload
+
+    # Fetch through get_report
+    fetched = get_report(report.analysis.id, db_path=temp_db_path)
+    assert fetched is not None
+    assert fetched.analysis.features_json == feat_payload
+
+    # Fetch through list_analyses
+    listed = list_analyses(search="trojan_features", db_path=temp_db_path)
+    assert listed.total == 1
+    assert listed.items[0].features_json == feat_payload
 
 
 # ---------------------------------------------------------------------------

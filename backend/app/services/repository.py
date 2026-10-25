@@ -64,8 +64,8 @@ def insert_analysis(
             INSERT INTO analyses (
                 filename, sha256, file_size, file_type, timestamp,
                 classification, confidence, risk_score, risk_level,
-                analysis_source, summary
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                analysis_source, summary, features_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 data["filename"],
@@ -79,6 +79,7 @@ def insert_analysis(
                 data["risk_level"],
                 data.get("analysis_source", "upload"),
                 data.get("summary", ""),
+                data.get("features_json"),
             ),
         )
         analysis_id = cur.lastrowid
@@ -194,6 +195,7 @@ def insert_analysis(
             risk_level=data["risk_level"],
             analysis_source=data.get("analysis_source", "upload"),
             summary=data.get("summary", ""),
+            features_json=data.get("features_json"),
         )
 
         return AnalysisReport(
@@ -229,6 +231,7 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
             risk_level=row["risk_level"],
             analysis_source=row["analysis_source"],
             summary=row["summary"],
+            features_json=row["features_json"],
         )
 
         b_rows = c.execute(
@@ -364,6 +367,7 @@ def list_analyses(
                 risk_level=r["risk_level"],
                 analysis_source=r["analysis_source"],
                 summary=r["summary"],
+                features_json=r["features_json"],
             )
             for r in rows
         ]

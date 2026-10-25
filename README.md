@@ -39,6 +39,14 @@ npm run dev
 cd ml && python train.py
 ```
 
+## Database Architecture
+The SQLite database (`backend/trojanguard.db`) strictly adheres to **Section 7 of `PROJECT_SPEC.md`** with exactly four tables:
+- `analyses`: Main analysis records (UUID/ID, file metadata, classification, confidence, risk score/level, source, summary, and `features_json`).
+  - *Note*: Feature vectors are stored as a JSON text column named `features_json` on `analyses`, keeping schema normalized and avoiding a separate features table.
+- `behavior_events`: Process, file, and registry events linked to `analyses(id)` with `ON DELETE CASCADE`.
+- `network_events`: Outbound connections, DNS queries, and traffic telemetry linked to `analyses(id)` with `ON DELETE CASCADE`.
+- `iocs`: Indicators of Compromise (hashes, IPs, domains, ports) linked to `analyses(id)` with `ON DELETE CASCADE`.
+
 ## Python environment
 
 **Python 3.12.15** (managed via `uv`).

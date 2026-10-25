@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS analyses (
     risk_score       INTEGER NOT NULL,   -- 0-100
     risk_level       TEXT    NOT NULL,   -- 'Low' | 'Medium' | 'High' | 'Critical'
     analysis_source  TEXT    NOT NULL DEFAULT 'upload',  -- 'upload' | 'demo' | 'seed_demo'
-    summary          TEXT    NOT NULL DEFAULT ''
+    summary          TEXT    NOT NULL DEFAULT '',
+    features_json    TEXT    DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS behavior_events (
