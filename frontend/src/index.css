@@ -56,11 +56,48 @@
   --color-risk-high-bg:     hsl(28  50% 12%);
   --color-risk-critical-bg: hsl(0   40% 12%);
 
+  /* ── Radius ──────────────────────────────────────────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
   /* ── Shadows ────────────────────────────────────────────────────── */
   --shadow-card:  0 1px 3px 0 hsl(220 30% 4% / 0.6),
                   0 1px 2px -1px hsl(220 30% 4% / 0.6);
   --shadow-panel: 0 4px 16px -4px hsl(220 30% 4% / 0.7);
 }
+
+:root {
+  --color-bg-base: hsl(220 30% 7%);
+  --color-bg-subtle: hsl(220 28% 9%);
+  --color-bg-muted: hsl(220 26% 11%);
+  --color-surface-1: hsl(220 24% 13%);
+  --color-surface-2: hsl(220 22% 16%);
+  --color-surface-3: hsl(220 20% 20%);
+  --color-border: hsl(220 18% 24%);
+  --color-border-subtle: hsl(220 18% 20%);
+  --color-text-primary: hsl(210 40% 96%);
+  --color-text-secondary: hsl(215 20% 65%);
+  --color-text-muted: hsl(215 16% 47%);
+  --color-accent: hsl(197 100% 47%);
+  --color-accent-dim: hsl(197 80% 36%);
+  --color-accent-subtle: hsl(197 60% 16%);
+  --color-risk-low: hsl(142 69% 45%);
+  --color-risk-medium: hsl(45 95% 55%);
+  --color-risk-high: hsl(28 95% 55%);
+  --color-risk-critical: hsl(0 85% 58%);
+  --color-risk-low-bg: hsl(142 40% 12%);
+  --color-risk-medium-bg: hsl(45 50% 12%);
+  --color-risk-high-bg: hsl(28 50% 12%);
+  --color-risk-critical-bg: hsl(0 40% 12%);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
 
 /* ── Base styles ────────────────────────────────────────────────────── */
 *, *::before, *::after {

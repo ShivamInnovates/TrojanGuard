@@ -48,6 +48,8 @@ async def analyze_sample(file: UploadFile = File(...)):
 
     try:
         report = run_analysis(source="upload", filename=filename, data=contents)
+        if report.analysis:
+            report.analysis.features_json = None
         return report
     except Exception as e:
         raise HTTPException(
@@ -71,4 +73,7 @@ async def get_analysis_by_id(id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Analysis record with ID {id} not found.",
         )
+    if report.analysis:
+        report.analysis.features_json = None
     return report
+

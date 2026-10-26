@@ -2,20 +2,22 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// https://vitejs.dev/config/
+// Backend API target defined in ONE place (env variable with default http://localhost:8001)
+const BACKEND_URL = process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8001'
+
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),   // Tailwind v4 — no postcss.config.js needed
+    tailwindcss(),
   ],
   server: {
     port: 5173,
     proxy: {
-      // Proxy all /api/* calls to the FastAPI backend (configurable via BACKEND_PORT, default 8000)
       '/api': {
-        target: `http://127.0.0.1:${process.env.BACKEND_PORT || 8000}`,
+        target: BACKEND_URL,
         changeOrigin: true,
       },
     },
   },
 })
+

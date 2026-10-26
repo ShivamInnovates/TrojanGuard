@@ -1,34 +1,119 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import React from 'react'
+import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom'
+import Sidebar from './components/Sidebar'
+import Header from './components/Header'
+import Styleguide from './pages/Styleguide'
+import EmptyState from './components/EmptyState'
 
-// Pages — imported as they are built in Phase 6.
-// Placeholder components keep the router runnable at Phase 1.
-const Placeholder = ({ name }) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    color: 'var(--color-text-secondary)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '0.9rem',
-  }}>
-    🛡 TrojanGuard — <strong style={{ color: 'var(--color-accent)', marginLeft: '0.5ch' }}>{name}</strong>&nbsp;(Phase 6)
-  </div>
-)
+function Layout({ children }) {
+  const location = useLocation()
+
+  const getPageTitle = (path) => {
+    if (path === '/') return 'SOC Dashboard'
+    if (path === '/analyze') return 'Sample Analysis & Inspection'
+    if (path.startsWith('/analysis/')) return 'Analysis Details & Evidence'
+    if (path === '/demo') return 'Demo Simulation Lab'
+    if (path === '/history') return 'Detection History & Catalog'
+    if (path === '/model') return 'ML Model Evaluation'
+    if (path === '/styleguide') return 'Design System Styleguide'
+    return 'TrojanGuard EDR / SOC'
+  }
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg-base)] text-[var(--color-text-primary)] font-sans">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Header title={getPageTitle(location.pathname)} />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
+    </div>
+  )
+}
+
+function PlaceholderPage({ title, description }) {
+  return (
+    <div className="space-y-4">
+      <EmptyState
+        title={title}
+        description={description}
+      />
+    </div>
+  )
+}
+
+function AnalysisRoutePlaceholder() {
+  const { id } = useParams()
+  return (
+    <PlaceholderPage
+      title={`Analysis Report #${id}`}
+      description="Detailed analysis breakdown, static inspection, extracted features, IOCs, and explainable evidence view."
+    />
+  )
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/"          element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Placeholder name="Dashboard" />} />
-        <Route path="/analyze"   element={<Placeholder name="Sample Analysis" />} />
-        <Route path="/results/:id" element={<Placeholder name="Analysis Results" />} />
-        <Route path="/demo"      element={<Placeholder name="Demo Lab" />} />
-        <Route path="/history"   element={<Placeholder name="History" />} />
-        <Route path="/model"     element={<Placeholder name="Model Evaluation" />} />
-        <Route path="*"          element={<Placeholder name="404 — Not Found" />} />
-      </Routes>
+      <Layout>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <PlaceholderPage
+                title="SOC Dashboard"
+                description="Live security metrics, classification breakdown, detection volume timeline, and network activity."
+              />
+            }
+          />
+          <Route
+            path="/analyze"
+            element={
+              <PlaceholderPage
+                title="Sample Analysis"
+                description="Safe in-memory upload of executable binaries or documents for static and heuristic threat evaluation."
+              />
+            }
+          />
+          <Route path="/analysis/:id" element={<AnalysisRoutePlaceholder />} />
+          <Route
+            path="/demo"
+            element={
+              <PlaceholderPage
+                title="Demo Simulation Lab"
+                description="Deterministic synthetic threat scenarios (Normal, Suspicious, Trojan-like) with streaming telemetry."
+              />
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <PlaceholderPage
+                title="Detection History"
+                description="Full catalog of evaluated samples with search, classification filtering, severity sorting, and pagination."
+              />
+            }
+          />
+          <Route
+            path="/model"
+            element={
+              <PlaceholderPage
+                title="Model Evaluation"
+                description="Random Forest classifier metrics, confusion matrix, ROC-AUC curves, and synthetic dataset distribution."
+              />
+            }
+          />
+          <Route path="/styleguide" element={<Styleguide />} />
+          <Route
+            path="*"
+            element={
+              <PlaceholderPage
+                title="404 — Not Found"
+                description="The requested SOC console route does not exist."
+              />
+            }
+          />
+        </Routes>
+      </Layout>
     </BrowserRouter>
   )
 }

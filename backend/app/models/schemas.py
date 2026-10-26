@@ -164,15 +164,36 @@ class ContextItem(BaseModel):
 class AnalysisReport(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    analysis: AnalysisRecord
-    behavior_events: list[BehaviorEventRecord] = Field(default_factory=list)
-    network_events: list[NetworkEventRecord] = Field(default_factory=list)
-    iocs: list[IocRecord] = Field(default_factory=list)
+    # Top-level structured analysis columns
+    id: int = 0
+    filename: str = ""
+    sha256: str = ""
+    file_size: int = 0
+    file_type: str = "unknown"
+    timestamp: str = ""
+    classification: Classification = "Benign"
+    confidence: float | None = None
+    risk_score: int = 0
+    risk_level: RiskLevel = "Low"
+    analysis_source: AnalysisSource = "upload"
+    summary: str = ""
+
+    # Legacy analysis sub-object for backward compatibility with existing tests
+    analysis: AnalysisRecord | None = None
+
+    # Structured features and risk telemetry
+    features: dict[str, Any] = Field(default_factory=dict)
+    observed_mask: dict[str, bool] = Field(default_factory=dict)
     evidence: list[EvidenceItem] = Field(default_factory=list)
     context: list[ContextItem] = Field(default_factory=list)
     raw_points: float = 0.0
+    classifier_output: dict[str, Any] | None = None
     classifier_agrees: bool = True
     classifier_disagreement_reason: str | None = None
+    behavior_events: list[BehaviorEventRecord] = Field(default_factory=list)
+    network_events: list[NetworkEventRecord] = Field(default_factory=list)
+    iocs: list[IocRecord] = Field(default_factory=list)
+    recommended_steps: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

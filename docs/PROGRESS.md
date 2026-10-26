@@ -42,10 +42,12 @@
 - [x] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
 - [x] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
 - [x] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
+- [x] **Phase 6a — Backend Report Shape & Frontend Design System**
+- [ ] **Phase 6b — Frontend Pages & Workflows**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
-- [ ] **Phase 6 — Frontend (Pages + Components + Design System)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
 - [ ] **Phase 8 — Documentation, README & Viva Notes**
+
 
 ---
 
@@ -193,36 +195,44 @@ backend/app/api/model.py              (GET /api/model/real/metrics,
 
 ---
 
-## Phase 6 — Frontend (Pages + Components + Design System)
+## Phase 6a — Backend Report Shape & Frontend Design System
 
-**Goal:** All five pages + Model Evaluation page; all reusable components;
-SOC dark theme consistent throughout.
+**Goal:** Structured `GET /api/analysis/{id}` without raw `features_json` string;
+complete SQL metrics for `GET /api/dashboard`; Vite proxy configuration with
+env-defined backend port; Tailwind v4 `@theme` design tokens; all 11 shared SOC
+components; 3 Recharts components; unified API client with `ApiError`; and `/styleguide` page.
 
-Files created:
+Files created / updated:
 ```
-frontend/src/services/api.js
-frontend/src/components/Sidebar.jsx
-frontend/src/components/Header.jsx
+backend/app/models/schemas.py       (AnalysisReport structured fields, exclude raw features_json string)
+backend/app/services/repository.py  (insert_analysis & get_report structured fields, get_dashboard_aggregates timeline & network)
+backend/app/services/pipeline.py    (attached structured fields and recommended_steps to returned report)
+backend/app/services/risk_engine.py (added get_recommended_steps generic defensive guidance)
+backend/app/api/analysis.py         (sanitized features_json from API output)
+tests/test_api.py                   (added test_analysis_endpoint_returns_structured_shape_and_dashboard_sql_aggregates)
+frontend/vite.config.js             (BACKEND_URL proxy configured in ONE place, default http://localhost:8001)
+frontend/src/index.css              (@theme design tokens, navy, cyan, risk colors, radius, typography)
+frontend/src/services/api.js        (unified API client with getHealth, getDashboard, analyzeFile, getAnalysis, etc.)
+frontend/src/components/Sidebar.jsx (compact SOC sidebar with Lucide icons & active route indicator)
+frontend/src/components/Header.jsx  (top bar with live backend status indicator & UTC clock)
 frontend/src/components/StatCard.jsx
-frontend/src/components/SeverityBadge.jsx
-frontend/src/components/RiskGauge.jsx
-frontend/src/components/LoadingState.jsx
-frontend/src/components/EmptyState.jsx
-frontend/src/components/ErrorState.jsx
-frontend/src/components/IocList.jsx
-frontend/src/components/EventTimeline.jsx
-frontend/src/components/EventStream.jsx
-frontend/src/components/AnalysisTable.jsx
-frontend/src/charts/ThreatDistributionChart.jsx
-frontend/src/charts/NetworkActivityChart.jsx
-frontend/src/charts/DetectionTimeline.jsx
-frontend/src/pages/Dashboard.jsx            (Page A)
-frontend/src/pages/SampleAnalysis.jsx       (Page B)
-frontend/src/pages/AnalysisResults.jsx      (Page C)
-frontend/src/pages/DemoLab.jsx              (Page D — highest priority)
-frontend/src/pages/History.jsx              (Page E)
-frontend/src/pages/ModelEvaluation.jsx      (Phase 5b real model)
+frontend/src/components/SeverityBadge.jsx (risk level & classification variants with theme tokens)
+frontend/src/components/RiskGauge.jsx     (SVG semicircle 0-100 animated gauge)
+frontend/src/components/SimulatedBanner.jsx ("Simulated telemetry, not monitored from a real host")
+frontend/src/components/EventStream.jsx   (real-time auto-scrolling terminal log with SIMULATED tags)
+frontend/src/components/EventTimeline.jsx (chronological timeline with category filtering)
+frontend/src/components/AnalysisTable.jsx (clickable tabular view with formatted timestamps & badges)
+frontend/src/components/IocList.jsx       (IOC list with copy-to-clipboard & SIMULATED tags)
+frontend/src/components/LoadingState.jsx  (spinner with customizable message)
+frontend/src/components/EmptyState.jsx    (SOC-themed placeholder with action support)
+frontend/src/components/ErrorState.jsx    (alert box with error message & retry callback)
+frontend/src/charts/ThreatDistributionChart.jsx (Recharts donut chart)
+frontend/src/charts/NetworkActivityChart.jsx    (Recharts bar chart for connections & DNS queries)
+frontend/src/charts/DetectionTimeline.jsx       (Recharts area chart for detection volume over time)
+frontend/src/pages/Styleguide.jsx   (comprehensive styleguide rendering all components with sample data)
+frontend/src/App.jsx                (React Router routes: /, /analyze, /analysis/:id, /demo, /history, /model, /styleguide)
 ```
+
 
 ---
 

@@ -24,8 +24,9 @@ from app.analysis.static import analyze_bytes, StaticResult
 from app.analysis.feature_extractor import extract_features, FeatureVector
 from app.analysis.ioc import extract_iocs
 from app.ml.predictor import predict
-from app.services.risk_engine import evaluate_risk
+from app.services.risk_engine import evaluate_risk, get_recommended_steps
 from app.services.repository import insert_analysis
+
 from app.demo.scenarios import get_scenario
 from app.models.schemas import AnalysisCreate, AnalysisReport, BehaviorEventCreate, NetworkEventCreate
 
@@ -157,11 +158,20 @@ def run_analysis(
         db_path=db_path,
     )
 
-    # Attach evidence, context & agreement fields to returned report
+    # Attach structured fields, evidence, context & agreement fields to returned report
+    report.features = fv.values
+    report.observed_mask = fv.observed_mask
+    report.classifier_output = clf_output
     report.evidence = risk_result["evidence"]
     report.context = risk_result.get("context", [])
     report.raw_points = risk_result.get("raw_points", risk_result["risk_score"])
     report.classifier_agrees = risk_result["classifier_agrees"]
     report.classifier_disagreement_reason = risk_result["classifier_disagreement_reason"]
+    report.recommended_steps = get_recommended_steps(
+        risk_result["classification"],
+        risk_result["risk_score"],
+        risk_result["evidence"],
+    )
 
     return report
+

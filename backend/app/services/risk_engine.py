@@ -465,3 +465,39 @@ def evaluate_risk(
         "classifier_disagreement_reason": classifier_disagreement_reason,
         "summary": summary,
     }
+
+
+def get_recommended_steps(classification: str, risk_score: float, evidence: list[Any] | None = None) -> list[str]:
+    """
+    Generate defensive next steps chosen from classification and observed evidence.
+    Written as generic security guidance only.
+    """
+    steps = []
+    indicators = set()
+    if evidence:
+        for item in evidence:
+            ind = item.indicator if hasattr(item, "indicator") else (item.get("indicator") if isinstance(item, dict) else "")
+            if ind:
+                indicators.add(ind)
+
+    if classification == "Trojan-like":
+        steps.append("Isolate the host immediately from the local network to prevent lateral movement.")
+        steps.append("Terminate suspicious processes and inspect persistence locations (Registry Run keys, Scheduled Tasks).")
+        if any("beacon" in ind or "network" in ind or "repeated" in ind for ind in indicators):
+            steps.append("Block identified C2 IP addresses and suspicious destination ports on perimeter firewalls.")
+        if any("inject" in ind or "process" in ind or "memory" in ind for ind in indicators):
+            steps.append("Capture volatile forensic memory to inspect for injected shellcode or DLL hollows.")
+        steps.append("Revoke active user session credentials and review directory service authentication logs.")
+    elif classification == "Suspicious":
+        steps.append("Quarantine the suspicious file and prevent execution across other managed endpoints.")
+        steps.append("Inspect user staging directories (AppData, Temp) for auxiliary payloads or droppers.")
+        if any("network" in ind or "dns" in ind for ind in indicators):
+            steps.append("Review outbound network flows and DNS query telemetry for abnormal domain lookups.")
+        steps.append("Submit the sample to an isolated sandbox for full behavioral execution and monitoring.")
+    else:  # Benign
+        steps.append("No active indicators of compromise identified; sample retained in baseline audit catalog.")
+        steps.append("Ensure endpoint detection signatures and operating system patches remain current.")
+        steps.append("Verify publisher digital signatures before executing or deploying in production.")
+
+    return steps
+

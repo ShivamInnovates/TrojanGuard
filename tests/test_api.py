@@ -337,3 +337,99 @@ def test_demo_sha256_synthetic_identifiers(test_client: TestClient):
         assert "synthetic identifier" in an_data["analysis"]["summary"].lower()
 
 
+def test_analysis_endpoint_returns_structured_shape_and_dashboard_sql_aggregates(test_client: TestClient):
+    """
+    Verify GET /api/analysis/{id} returns structured fields (not raw features_json string):
+    analysis columns, features, observed_mask, evidence (with points, source, is_simulated),
+    context, raw_points, classifier_output, classifier_agrees, classifier_disagreement_reason,
+    behavior_events, network_events, iocs, and recommended_steps.
+    Also verify GET /api/dashboard returns complete SQL metrics including timeline and network activity.
+    """
+    # 1. Verify dashboard on empty database
+    d_empty = test_client.get("/api/dashboard").json()
+    assert d_empty["totals"]["analyses"] == 0
+    assert d_empty["counts_per_classification"] == {"Benign": 0, "Suspicious": 0, "Trojan-like": 0}
+    assert d_empty["counts_per_risk_level"] == {"Low": 0, "Medium": 0, "High": 0, "Critical": 0}
+    assert d_empty["avg_risk_score"] == 0.0
+    assert d_empty["detection_timeline"] == []
+    assert d_empty["network_activity"] == []
+
+    # 2. Seed a completed demo run
+    start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    demo_id = start_resp.json()["demo_id"]
+    poll_resp = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+    analysis_id = poll_resp.json()["analysis_id"]
+
+    # 3. Retrieve GET /api/analysis/{id}
+    res = test_client.get(f"/api/analysis/{analysis_id}")
+    assert res.status_code == 200
+    report = res.json()
+
+    # Verify no raw features_json string in response
+    assert "features_json" not in report
+    if "analysis" in report and report["analysis"]:
+        assert report["analysis"].get("features_json") is None
+
+    # Verify top-level analysis columns
+    assert report["id"] == analysis_id
+    assert report["filename"] == "invoice_viewer_trojan.exe"
+    assert report["file_type"] == "PE"
+    assert report["classification"] == "Trojan-like"
+    assert report["risk_level"] == "Critical"
+    assert report["risk_score"] >= 80
+
+    # Verify structured features dictionary
+    assert isinstance(report["features"], dict)
+    assert "file_entropy" in report["features"]
+    assert "import_count" in report["features"]
+
+    # Verify observed mask dictionary
+    assert isinstance(report["observed_mask"], dict)
+    assert report["observed_mask"].get("file_entropy") is True
+
+    # Verify evidence items with points, source, is_simulated
+    assert isinstance(report["evidence"], list)
+    assert len(report["evidence"]) > 0
+    for ev in report["evidence"]:
+        assert "indicator" in ev
+        assert "observed_value" in ev
+        assert "points_contributed" in ev
+        assert "source" in ev
+        assert "is_simulated" in ev
+        assert ev["is_simulated"] is True
+
+    # Verify context, raw points, classifier agreement & disagreement reason
+    assert isinstance(report["context"], list)
+    assert isinstance(report["raw_points"], (int, float))
+    assert report["raw_points"] >= 80
+    assert isinstance(report["classifier_agrees"], bool)
+    assert report["classifier_output"] is not None
+
+    # Verify behavior events, network events, and IOCs
+    assert isinstance(report["behavior_events"], list)
+    assert len(report["behavior_events"]) > 0
+    assert isinstance(report["network_events"], list)
+    assert len(report["network_events"]) > 0
+    assert isinstance(report["iocs"], list)
+    assert len(report["iocs"]) > 0
+
+    # Verify recommended steps (generic guidance list)
+    assert isinstance(report["recommended_steps"], list)
+    assert len(report["recommended_steps"]) >= 3
+    assert any("isolate" in s.lower() for s in report["recommended_steps"])
+
+    # 4. Verify dashboard metrics with seeded data
+    d_populated = test_client.get("/api/dashboard").json()
+    assert d_populated["totals"]["analyses"] == 1
+    assert d_populated["totals"]["threats"] == 1
+    assert d_populated["counts_per_classification"]["Trojan-like"] == 1
+    assert d_populated["counts_per_risk_level"]["Critical"] == 1
+    assert d_populated["avg_risk_score"] > 0.0
+    assert len(d_populated["detection_timeline"]) == 1
+    assert d_populated["detection_timeline"][0]["trojan"] == 1
+    assert len(d_populated["network_activity"]) == 1
+    assert d_populated["network_activity"][0]["analysis_id"] == analysis_id
+    assert d_populated["network_activity"][0]["connections"] > 0
+
+
+

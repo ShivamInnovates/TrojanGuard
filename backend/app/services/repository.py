@@ -21,9 +21,13 @@ from app.models.schemas import (
     NetworkEventRecord,
     IocCreate,
     IocRecord,
+    EvidenceItem,
+    ContextItem,
     AnalysisReport,
     PaginatedAnalyses,
 )
+from app.services.risk_engine import get_recommended_steps
+
 
 # Strict whitelist for sortable columns
 ALLOWED_SORT_COLUMNS: dict[str, str] = {
@@ -204,12 +208,18 @@ def insert_analysis(
         raw_points = float(data.get("risk_score", 0))
         classifier_agrees = True
         disagreement_reason: str | None = None
+        features_dict: dict[str, Any] = {}
+        observed_mask_dict: dict[str, bool] = {}
+        classifier_output_dict: dict[str, Any] | None = None
+
         if data.get("features_json"):
             try:
                 import json
                 fj = json.loads(data["features_json"]) if isinstance(data["features_json"], str) else data["features_json"]
                 if isinstance(fj, dict):
-                    from app.models.schemas import EvidenceItem, ContextItem
+                    features_dict = fj.get("features", {})
+                    observed_mask_dict = fj.get("observed_mask", {})
+                    classifier_output_dict = fj.get("classifier_output")
                     if "evidence" in fj:
                         evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
                     if "context" in fj:
@@ -223,17 +233,36 @@ def insert_analysis(
             except Exception:
                 pass
 
+        rec_steps = get_recommended_steps(analysis_record.classification, analysis_record.risk_score, evidence_items)
+
         return AnalysisReport(
+            id=analysis_id,
+            filename=analysis_record.filename,
+            sha256=analysis_record.sha256,
+            file_size=analysis_record.file_size,
+            file_type=analysis_record.file_type,
+            timestamp=analysis_record.timestamp,
+            classification=analysis_record.classification,
+            confidence=analysis_record.confidence,
+            risk_score=analysis_record.risk_score,
+            risk_level=analysis_record.risk_level,
+            analysis_source=analysis_record.analysis_source,
+            summary=analysis_record.summary,
             analysis=analysis_record,
-            behavior_events=inserted_behaviors,
-            network_events=inserted_networks,
-            iocs=inserted_iocs,
+            features=features_dict,
+            observed_mask=observed_mask_dict,
             evidence=evidence_items,
             context=context_items,
             raw_points=raw_points,
+            classifier_output=classifier_output_dict,
             classifier_agrees=classifier_agrees,
             classifier_disagreement_reason=disagreement_reason,
+            behavior_events=inserted_behaviors,
+            network_events=inserted_networks,
+            iocs=inserted_iocs,
+            recommended_steps=rec_steps,
         )
+
 
     if conn is not None:
         return _execute(conn)
@@ -320,12 +349,18 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
         raw_points = float(analysis.risk_score)
         classifier_agrees = True
         disagreement_reason: str | None = None
+        features_dict: dict[str, Any] = {}
+        observed_mask_dict: dict[str, bool] = {}
+        classifier_output_dict: dict[str, Any] | None = None
+
         if row["features_json"]:
             try:
                 import json
                 fj = json.loads(row["features_json"])
                 if isinstance(fj, dict):
-                    from app.models.schemas import EvidenceItem, ContextItem
+                    features_dict = fj.get("features", {})
+                    observed_mask_dict = fj.get("observed_mask", {})
+                    classifier_output_dict = fj.get("classifier_output")
                     if "evidence" in fj:
                         evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
                     if "context" in fj:
@@ -339,17 +374,36 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
             except Exception:
                 pass
 
+        rec_steps = get_recommended_steps(analysis.classification, analysis.risk_score, evidence_items)
+
         return AnalysisReport(
+            id=analysis.id,
+            filename=analysis.filename,
+            sha256=analysis.sha256,
+            file_size=analysis.file_size,
+            file_type=analysis.file_type,
+            timestamp=analysis.timestamp,
+            classification=analysis.classification,
+            confidence=analysis.confidence,
+            risk_score=analysis.risk_score,
+            risk_level=analysis.risk_level,
+            analysis_source=analysis.analysis_source,
+            summary=analysis.summary,
             analysis=analysis,
-            behavior_events=behaviors,
-            network_events=networks,
-            iocs=iocs,
+            features=features_dict,
+            observed_mask=observed_mask_dict,
             evidence=evidence_items,
             context=context_items,
             raw_points=raw_points,
+            classifier_output=classifier_output_dict,
             classifier_agrees=classifier_agrees,
             classifier_disagreement_reason=disagreement_reason,
+            behavior_events=behaviors,
+            network_events=networks,
+            iocs=iocs,
+            recommended_steps=rec_steps,
         )
+
 
     if conn is not None:
         return _execute(conn)
@@ -460,6 +514,8 @@ def get_dashboard_aggregates(db_path: Path | None = None, conn: sqlite3.Connecti
                 SUM(CASE WHEN classification = 'Benign' THEN 1 ELSE 0 END) AS benign_count,
                 SUM(CASE WHEN classification = 'Suspicious' THEN 1 ELSE 0 END) AS suspicious_count,
                 SUM(CASE WHEN classification = 'Trojan-like' THEN 1 ELSE 0 END) AS trojan_count,
+                SUM(CASE WHEN risk_level = 'Low' THEN 1 ELSE 0 END) AS low_risk_count,
+                SUM(CASE WHEN risk_level = 'Medium' THEN 1 ELSE 0 END) AS medium_risk_count,
                 SUM(CASE WHEN risk_level = 'High' THEN 1 ELSE 0 END) AS high_risk_count,
                 SUM(CASE WHEN risk_level = 'Critical' THEN 1 ELSE 0 END) AS critical_risk_count
             FROM analyses
@@ -467,6 +523,8 @@ def get_dashboard_aggregates(db_path: Path | None = None, conn: sqlite3.Connecti
         ).fetchone()
 
         total_iocs_row = c.execute("SELECT COUNT(*) AS total_iocs FROM iocs").fetchone()
+        total_b_row = c.execute("SELECT COUNT(*) AS total_b FROM behavior_events").fetchone()
+        total_n_row = c.execute("SELECT COUNT(*) AS total_n FROM network_events").fetchone()
 
         source_dist_rows = c.execute(
             """
@@ -492,32 +550,114 @@ def get_dashboard_aggregates(db_path: Path | None = None, conn: sqlite3.Connecti
             """
         ).fetchall()
 
+        # Detection timeline (analyses per hour/bucket from SQL)
+        timeline_rows = c.execute(
+            """
+            SELECT
+                substr(timestamp, 1, 13) || ':00' AS time_bucket,
+                COUNT(*) AS count,
+                SUM(CASE WHEN classification = 'Trojan-like' THEN 1 ELSE 0 END) AS trojan_count,
+                SUM(CASE WHEN classification = 'Suspicious' THEN 1 ELSE 0 END) AS suspicious_count,
+                SUM(CASE WHEN classification = 'Benign' THEN 1 ELSE 0 END) AS benign_count
+            FROM analyses
+            GROUP BY time_bucket
+            ORDER BY time_bucket ASC
+            """
+        ).fetchall()
+
+        # Network activity (connections and DNS counts per analysis from SQL)
+        network_rows = c.execute(
+            """
+            SELECT
+                a.id AS analysis_id,
+                a.filename,
+                a.timestamp,
+                COALESCE(COUNT(n.id), 0) AS connections,
+                COALESCE(SUM(CASE WHEN n.event_type = 'dns_query' THEN 1 ELSE 0 END), 0) AS dns_queries
+            FROM analyses a
+            LEFT JOIN network_events n ON a.id = n.analysis_id
+            GROUP BY a.id, a.filename, a.timestamp
+            ORDER BY a.id ASC
+            """
+        ).fetchall()
+
         tot = totals_row["total_samples"] if totals_row else 0
         benign_c = totals_row["benign_count"] if totals_row and totals_row["benign_count"] else 0
         susp_c = totals_row["suspicious_count"] if totals_row and totals_row["suspicious_count"] else 0
         trojan_c = totals_row["trojan_count"] if totals_row and totals_row["trojan_count"] else 0
+        low_c = totals_row["low_risk_count"] if totals_row and totals_row["low_risk_count"] else 0
+        med_c = totals_row["medium_risk_count"] if totals_row and totals_row["medium_risk_count"] else 0
+        high_c = totals_row["high_risk_count"] if totals_row and totals_row["high_risk_count"] else 0
+        crit_c = totals_row["critical_risk_count"] if totals_row and totals_row["critical_risk_count"] else 0
         threats_det = susp_c + trojan_c
         iocs_c = total_iocs_row["total_iocs"] if total_iocs_row else 0
+        total_events = (total_b_row["total_b"] if total_b_row else 0) + (total_n_row["total_n"] if total_n_row else 0)
 
         source_dict = {"upload": 0, "demo": 0, "seed_demo": 0}
         for r in source_dist_rows:
             source_dict[r["analysis_source"]] = r["count"]
 
+        # When empty database, return empty arrays
+        detection_timeline = [
+            {
+                "timestamp": r["time_bucket"],
+                "count": r["count"],
+                "trojan": r["trojan_count"],
+                "suspicious": r["suspicious_count"],
+                "benign": r["benign_count"],
+            }
+            for r in timeline_rows
+        ] if tot > 0 else []
+
+        network_activity = [
+            {
+                "analysis_id": r["analysis_id"],
+                "filename": r["filename"],
+                "timestamp": r["timestamp"],
+                "connections": r["connections"],
+                "dns_queries": r["dns_queries"],
+            }
+            for r in network_rows
+        ] if tot > 0 else []
+
         return {
+            "totals": {
+                "analyses": tot,
+                "threats": threats_det,
+                "iocs": iocs_c,
+                "events": total_events,
+                "benign": benign_c,
+                "suspicious": susp_c,
+                "trojan": trojan_c,
+            },
             "total_samples": tot,
             "total_analyses": tot,
             "threats_detected": threats_det,
             "total_iocs": iocs_c,
             "avg_risk_score": round(float(totals_row["avg_risk_score"] or 0.0), 1) if totals_row else 0.0,
+            "counts_per_classification": {
+                "Benign": benign_c,
+                "Suspicious": susp_c,
+                "Trojan-like": trojan_c,
+            },
+            "counts_per_risk_level": {
+                "Low": low_c,
+                "Medium": med_c,
+                "High": high_c,
+                "Critical": crit_c,
+            },
             "benign_count": benign_c,
             "suspicious_count": susp_c,
             "trojan_count": trojan_c,
-            "high_risk_count": totals_row["high_risk_count"] if totals_row and totals_row["high_risk_count"] else 0,
-            "critical_risk_count": totals_row["critical_risk_count"] if totals_row and totals_row["critical_risk_count"] else 0,
+            "high_risk_count": high_c,
+            "critical_risk_count": crit_c,
             "analyses_by_source": source_dict,
             "threat_distribution": {r["classification"]: r["count"] for r in threat_dist_rows},
             "severity_distribution": {r["risk_level"]: r["count"] for r in severity_dist_rows},
+            "detection_timeline": detection_timeline,
+            "network_activity": network_activity,
         }
+
 
     if conn is not None:
         return _execute(conn)
