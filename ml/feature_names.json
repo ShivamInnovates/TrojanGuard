@@ -1,0 +1,11 @@
+[
+  "file_entropy",
+  "import_count",
+  "suspicious_imports",
+  "process_count",
+  "file_events",
+  "network_connections",
+  "dns_requests",
+  "repeated_connections",
+  "persistence_indicator"
+]

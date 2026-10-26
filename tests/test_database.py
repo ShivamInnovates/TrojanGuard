@@ -373,7 +373,10 @@ def test_health_check_healthy(test_client: TestClient):
     assert data["status"] == "ok"
     assert data["database_reachable"] is True
     assert data["table_count"] >= 4
-    assert data["model_status"] == "not trained yet"
+    assert data["model_status"] in ("loaded", "not trained yet")
+    if data["model_status"] == "loaded":
+        assert data["model_version"] is not None
+    assert data["trained_on_synthetic"] is True
     assert "python_version" in data
     assert data["app_version"] == "0.1.0"
 

@@ -149,6 +149,8 @@ class HealthResponse(BaseModel):
     database_reachable: bool
     table_count: int
     model_status: str
+    model_version: str | None = None
+    trained_on_synthetic: bool = True
     python_version: str
     app_version: str
 

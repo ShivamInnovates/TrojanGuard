@@ -1,0 +1,88 @@
+{
+  "model_type": "RandomForestClassifier",
+  "random_state": 42,
+  "sklearn_version": "1.6.1",
+  "trained_at_utc": "2026-10-26T14:06:30.549464+00:00",
+  "dataset_sha256": "6486546ac364abbac4b815fa495c99c0b236247e629033f232a9ca2013cd0bf7",
+  "feature_order": [
+    "file_entropy",
+    "import_count",
+    "suspicious_imports",
+    "process_count",
+    "file_events",
+    "network_connections",
+    "dns_requests",
+    "repeated_connections",
+    "persistence_indicator"
+  ],
+  "class_labels": [
+    "Benign",
+    "Suspicious",
+    "Trojan-like"
+  ],
+  "class_mapping": {
+    "0": "Benign",
+    "1": "Suspicious",
+    "2": "Trojan-like"
+  },
+  "row_counts": {
+    "total": 3000,
+    "train": 2400,
+    "test": 600,
+    "per_class": {
+      "1": 1002,
+      "2": 1000,
+      "0": 998
+    }
+  },
+  "test_accuracy": 0.9383,
+  "per_class_metrics": {
+    "Benign": {
+      "precision": 0.9453,
+      "recall": 0.95,
+      "f1_score": 0.9476,
+      "support": 200
+    },
+    "Suspicious": {
+      "precision": 0.9208,
+      "recall": 0.93,
+      "f1_score": 0.9254,
+      "support": 200
+    },
+    "Trojan-like": {
+      "precision": 0.9492,
+      "recall": 0.935,
+      "f1_score": 0.9421,
+      "support": 200
+    }
+  },
+  "confusion_matrix": [
+    [
+      190,
+      6,
+      4
+    ],
+    [
+      8,
+      186,
+      6
+    ],
+    [
+      3,
+      10,
+      187
+    ]
+  ],
+  "feature_importances": {
+    "file_entropy": 0.2218,
+    "import_count": 0.1097,
+    "suspicious_imports": 0.2364,
+    "process_count": 0.0272,
+    "file_events": 0.017,
+    "network_connections": 0.0986,
+    "dns_requests": 0.0153,
+    "repeated_connections": 0.1486,
+    "persistence_indicator": 0.1255
+  },
+  "synthetic_disclaimer": "These metrics were evaluated exclusively on synthetic demonstration data with artificially simulated telemetry and intentional statistical distributions. They validate the pipeline architecture and explainable feature-scoring integration, and say nothing about real-world malware detection performance or efficacy against in-the-wild evasive malware."
+}

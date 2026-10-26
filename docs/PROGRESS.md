@@ -40,7 +40,7 @@
 - [x] **Phase 1 — Workspace Bootstrap & Project Skeleton**
 - [x] **Phase 2 — Database, Schemas & /api/health**
 - [x] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
-- [ ] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
+- [x] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
 - [ ] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 6 — Frontend (Pages + Components + Design System)**
@@ -110,7 +110,6 @@ backend/app/config.py                     (FEATURE_NAMES list, SUSPICIOUS_IMPORT
 backend/app/analysis/exceptions.py        (UploadSizeExceededError HTTP 413)
 backend/app/analysis/static.py            (analyze_bytes, SHA-256, entropy, magic bytes, pefile)
 backend/app/analysis/behavior.py          (deterministic seeded host behavioral telemetry)
-backend/app/analysis/behavioral.py        (alias re-export for backwards compatibility)
 backend/app/analysis/network.py           (deterministic seeded network telemetry, RFC 5737 IPs)
 backend/app/analysis/ioc.py               (IOC builder from observed hashes/IPs/domains/ports)
 backend/app/analysis/feature_extractor.py (9-feature vector + observed_mask)
@@ -122,20 +121,24 @@ tests/test_analysis.py                    (10 unit tests covering all analysis r
 
 ## Phase 4 — ML Training & Inference Pipeline (synthetic)
 
-**Goal:** Reproducible Random Forest on synthetic data; model loadable by
-backend predictor; feature names locked in JSON.
+**Goal:** Reproducible Random Forest on synthetic data (seed=42, ~3000 rows, 4% label noise);
+model loadable by backend predictor with telemetry applicability validation; metadata
+persisted in JSON.
 
-Files created:
+Files created / updated:
 ```
-ml/generate_dataset.py          (synthetic CSV, seed=42, ~1 000 rows)
-ml/dataset.csv
-ml/train.py                     (train RF, save artifacts)
-ml/model.pkl
+ml/generate_dataset.py          (synthetic CSV, seed=42, ~3 000 rows, overlapping classes, 4% noise)
+ml/dataset.csv                  (3 000 balanced rows)
+ml/dataset_card.md              (methodology, class ranges, and synthetic limitations)
+ml/train.py                     (train RF, stratified 80/20, class_weight='balanced', seed=42)
+ml/model.pkl                    (joblib Random Forest artifact)
+ml/model_meta.json              (reproducibility metadata, accuracy, confusion matrix, importances)
 ml/feature_names.json           (ordered feature list)
-ml/README.md                    (limitations + retrain instructions)
-backend/app/ml/__init__.py
-backend/app/ml/predictor.py     (load model, predict class + proba)
-tests/test_ml.py                (smoke-test train + inference)
+backend/app/ml/__init__.py      (public ML exports)
+backend/app/ml/predictor.py     (load model, validate metadata & features, check telemetry applicability)
+backend/app/api/health.py       (health probe reports model status, version, and synthetic flag)
+backend/app/models/schemas.py   (HealthResponse schema extended with model_version, trained_on_synthetic)
+tests/test_ml.py                (6 unit tests covering training, reproducibility, inputs, and predictions)
 ```
 
 ---
