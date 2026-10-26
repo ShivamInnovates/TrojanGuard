@@ -199,15 +199,24 @@ def insert_analysis(
         )
 
         evidence_items: list[EvidenceItem] = []
+        context_items: list[ContextItem] = []
+        raw_points = float(data.get("risk_score", 0))
         classifier_agrees = True
         disagreement_reason: str | None = None
         if data.get("features_json"):
             try:
                 import json
                 fj = json.loads(data["features_json"]) if isinstance(data["features_json"], str) else data["features_json"]
-                if isinstance(fj, dict) and "evidence" in fj:
-                    from app.models.schemas import EvidenceItem
-                    evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                if isinstance(fj, dict):
+                    from app.models.schemas import EvidenceItem, ContextItem
+                    if "evidence" in fj:
+                        evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                    if "context" in fj:
+                        context_items = [ContextItem(**c) for c in fj["context"]]
+                    if "raw_points" in fj:
+                        raw_points = float(fj["raw_points"])
+                    elif evidence_items:
+                        raw_points = float(sum(e.points_contributed for e in evidence_items))
                     classifier_agrees = fj.get("classifier_agrees", True)
                     disagreement_reason = fj.get("classifier_disagreement_reason")
             except Exception:
@@ -219,6 +228,8 @@ def insert_analysis(
             network_events=inserted_networks,
             iocs=inserted_iocs,
             evidence=evidence_items,
+            context=context_items,
+            raw_points=raw_points,
             classifier_agrees=classifier_agrees,
             classifier_disagreement_reason=disagreement_reason,
         )
@@ -304,15 +315,24 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
         ]
 
         evidence_items: list[EvidenceItem] = []
+        context_items: list[ContextItem] = []
+        raw_points = float(analysis.risk_score)
         classifier_agrees = True
         disagreement_reason: str | None = None
         if row["features_json"]:
             try:
                 import json
                 fj = json.loads(row["features_json"])
-                if isinstance(fj, dict) and "evidence" in fj:
-                    from app.models.schemas import EvidenceItem
-                    evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                if isinstance(fj, dict):
+                    from app.models.schemas import EvidenceItem, ContextItem
+                    if "evidence" in fj:
+                        evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                    if "context" in fj:
+                        context_items = [ContextItem(**c) for c in fj["context"]]
+                    if "raw_points" in fj:
+                        raw_points = float(fj["raw_points"])
+                    elif evidence_items:
+                        raw_points = float(sum(e.points_contributed for e in evidence_items))
                     classifier_agrees = fj.get("classifier_agrees", True)
                     disagreement_reason = fj.get("classifier_disagreement_reason")
             except Exception:
@@ -324,6 +344,8 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
             network_events=networks,
             iocs=iocs,
             evidence=evidence_items,
+            context=context_items,
+            raw_points=raw_points,
             classifier_agrees=classifier_agrees,
             classifier_disagreement_reason=disagreement_reason,
         )

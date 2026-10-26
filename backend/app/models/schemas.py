@@ -126,7 +126,18 @@ class EvidenceItem(BaseModel):
     indicator: str
     observed_value: Any
     points_contributed: float
-    source: Literal["static", "behavior", "network", "classifier"]
+    source: Literal["static", "static_simulated", "behavior", "network", "classifier"]
+    is_simulated: bool = False
+
+
+class ContextItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    indicator: str
+    observed_value: Any
+    description: str
+    source: Literal["static", "static_simulated", "behavior", "network", "classifier"]
+    is_simulated: bool = False
 
 
 class AnalysisReport(BaseModel):
@@ -137,6 +148,8 @@ class AnalysisReport(BaseModel):
     network_events: list[NetworkEventRecord] = Field(default_factory=list)
     iocs: list[IocRecord] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    context: list[ContextItem] = Field(default_factory=list)
+    raw_points: float = 0.0
     classifier_agrees: bool = True
     classifier_disagreement_reason: str | None = None
 

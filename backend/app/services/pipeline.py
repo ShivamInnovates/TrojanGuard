@@ -97,6 +97,7 @@ def run_analysis(
         network_events=network_events,
         classifier_output=clf_output,
         observed_mask=fv.observed_mask,
+        is_demo=is_demo,
     )
 
     # Step 5: IOC Extraction
@@ -112,6 +113,8 @@ def run_analysis(
         "features": fv.values,
         "observed_mask": fv.observed_mask,
         "evidence": [e.model_dump() for e in risk_result["evidence"]],
+        "context": [c.model_dump() for c in risk_result.get("context", [])],
+        "raw_points": risk_result.get("raw_points", risk_result["risk_score"]),
         "classifier_agrees": risk_result["classifier_agrees"],
         "classifier_disagreement_reason": risk_result["classifier_disagreement_reason"],
         "classifier_output": clf_output,
@@ -149,8 +152,10 @@ def run_analysis(
         db_path=db_path,
     )
 
-    # Attach evidence & agreement fields to returned report
+    # Attach evidence, context & agreement fields to returned report
     report.evidence = risk_result["evidence"]
+    report.context = risk_result.get("context", [])
+    report.raw_points = risk_result.get("raw_points", risk_result["risk_score"])
     report.classifier_agrees = risk_result["classifier_agrees"]
     report.classifier_disagreement_reason = risk_result["classifier_disagreement_reason"]
 

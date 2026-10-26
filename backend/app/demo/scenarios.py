@@ -11,10 +11,20 @@ Built strictly on Phase 3 generators with fixed seed (42).
 from __future__ import annotations
 
 from typing import Any
+import hashlib
 from app.analysis.static import StaticResult
 from app.analysis.behavior import generate_behavior_events
 from app.analysis.network import generate_network_events
 from app.models.schemas import BehaviorEventCreate, NetworkEventCreate
+
+
+def derive_simulated_sha256(scenario_id: str) -> str:
+    """
+    Deterministically derive a SHA-256 for a simulated demo scenario.
+    Clearly represents a derived synthetic profile rather than a real file hash.
+    """
+    raw = f"trojanguard:simulated_scenario_profile:{scenario_id}:seed42"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
@@ -26,7 +36,7 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
         "expected_risk_band": "Low",
         "filename": "sys_helper_clean.exe",
         "file_size": 1024,
-        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "sha256": derive_simulated_sha256("normal"),
         "entropy": 4.20,
         "import_count": 18,
         "suspicious_import_count": 0,
@@ -39,7 +49,7 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
         "expected_risk_band": "Medium",
         "filename": "update_agent_stager.exe",
         "file_size": 2048,
-        "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        "sha256": derive_simulated_sha256("suspicious"),
         "entropy": 5.80,
         "import_count": 45,
         "suspicious_import_count": 2,
@@ -52,7 +62,7 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
         "expected_risk_band": "Critical",
         "filename": "invoice_viewer_trojan.exe",
         "file_size": 8192,
-        "sha256": "feedfacecafebeef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "sha256": derive_simulated_sha256("trojan"),
         "entropy": 7.40,
         "import_count": 85,
         "suspicious_import_count": 6,

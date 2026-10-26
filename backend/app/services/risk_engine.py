@@ -27,7 +27,12 @@ from app.config import (
 )
 from app.analysis.feature_extractor import FeatureVector
 from app.analysis.static import StaticResult
-from app.models.schemas import BehaviorEventCreate, NetworkEventCreate, EvidenceItem
+from app.models.schemas import (
+    BehaviorEventCreate,
+    NetworkEventCreate,
+    EvidenceItem,
+    ContextItem,
+)
 
 
 def get_risk_level(score: int) -> str:
@@ -56,6 +61,7 @@ def evaluate_risk(
     network_events: Sequence[NetworkEventCreate] | None = None,
     classifier_output: dict[str, Any] | None = None,
     observed_mask: dict[str, bool] | None = None,
+    is_demo: bool = False,
 ) -> dict[str, Any]:
     """
     Evaluate risk score, risk level, classification, and structured evidence list.
@@ -74,6 +80,8 @@ def evaluate_risk(
         Result from ML predictor (may have applicable=False).
     observed_mask:
         Mapping of feature name -> bool.
+    is_demo:
+        Whether the analysis source is a simulated demonstration scenario.
 
     Returns
     -------
@@ -81,9 +89,11 @@ def evaluate_risk(
         {
             "classification": "Benign" | "Suspicious" | "Trojan-like",
             "risk_score": int,
+            "raw_points": float,
             "unclamped_score": float,
             "risk_level": "Low" | "Medium" | "High" | "Critical",
             "evidence": list[EvidenceItem],
+            "context": list[ContextItem],
             "classifier_agrees": bool,
             "classifier_disagreement_reason": str | None,
             "summary": str,
@@ -101,6 +111,11 @@ def evaluate_risk(
         f_mask = observed_mask or {}
 
     evidence: list[EvidenceItem] = []
+    context: list[ContextItem] = []
+
+    # Evidence sources and simulated flags
+    static_src = "static_simulated" if is_demo else "static"
+    is_simulated = is_demo
 
     # -----------------------------------------------------------------------
     # 1. Static Indicators (only when observed)
@@ -111,15 +126,25 @@ def evaluate_risk(
             evidence.append(EvidenceItem(
                 indicator="high_file_entropy",
                 observed_value=round(ent, 2),
-                points_contributed=10.0,
-                source="static",
+                points_contributed=RISK_WEIGHTS.get("file_entropy", 10.0),
+                source=static_src,
+                is_simulated=is_simulated,
             ))
         elif ent >= 5.5:
             evidence.append(EvidenceItem(
                 indicator="moderate_file_entropy",
                 observed_value=round(ent, 2),
                 points_contributed=5.0,
-                source="static",
+                source=static_src,
+                is_simulated=is_simulated,
+            ))
+        else:
+            context.append(ContextItem(
+                indicator="normal_entropy",
+                observed_value=round(ent, 2),
+                description="File entropy within normal unpacked distribution (benign baseline).",
+                source=static_src,
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("import_count", False):
@@ -128,26 +153,60 @@ def evaluate_risk(
             evidence.append(EvidenceItem(
                 indicator="high_import_count",
                 observed_value=imp,
-                points_contributed=8.0,
-                source="static",
+                points_contributed=6.0,
+                source=static_src,
+                is_simulated=is_simulated,
             ))
         elif imp >= 35:
             evidence.append(EvidenceItem(
                 indicator="moderate_import_count",
                 observed_value=imp,
                 points_contributed=4.0,
-                source="static",
+                source=static_src,
+                is_simulated=is_simulated,
+            ))
+        else:
+            context.append(ContextItem(
+                indicator="normal_import_count",
+                observed_value=imp,
+                description="Import table count within expected bounds.",
+                source=static_src,
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("suspicious_imports", False):
         susp = int(f_vals.get("suspicious_imports", 0))
-        if susp > 0:
-            pts = min(15.0, float(susp * 3.0))
+        if susp >= 6:
             evidence.append(EvidenceItem(
                 indicator="suspicious_api_imports",
                 observed_value=susp,
-                points_contributed=pts,
-                source="static",
+                points_contributed=RISK_WEIGHTS.get("suspicious_imports", 16.0),
+                source=static_src,
+                is_simulated=is_simulated,
+            ))
+        elif susp >= 4:
+            evidence.append(EvidenceItem(
+                indicator="suspicious_api_imports",
+                observed_value=susp,
+                points_contributed=12.0,
+                source=static_src,
+                is_simulated=is_simulated,
+            ))
+        elif susp >= 2:
+            evidence.append(EvidenceItem(
+                indicator="suspicious_api_imports",
+                observed_value=susp,
+                points_contributed=5.0,
+                source=static_src,
+                is_simulated=is_simulated,
+            ))
+        elif susp == 1:
+            evidence.append(EvidenceItem(
+                indicator="suspicious_api_imports",
+                observed_value=susp,
+                points_contributed=3.0,
+                source=static_src,
+                is_simulated=is_simulated,
             ))
 
     # -----------------------------------------------------------------------
@@ -159,8 +218,9 @@ def evaluate_risk(
             evidence.append(EvidenceItem(
                 indicator="high_process_activity",
                 observed_value=proc,
-                points_contributed=8.0,
+                points_contributed=RISK_WEIGHTS.get("process_count", 8.0),
                 source="behavior",
+                is_simulated=is_simulated,
             ))
         elif proc >= 2:
             evidence.append(EvidenceItem(
@@ -168,17 +228,26 @@ def evaluate_risk(
                 observed_value=proc,
                 points_contributed=4.0,
                 source="behavior",
+                is_simulated=is_simulated,
+            ))
+        else:
+            context.append(ContextItem(
+                indicator="single_process_execution",
+                observed_value=proc,
+                description="Single process execution; no abnormal process tree branching.",
+                source="behavior",
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("file_events", False):
         fev = int(f_vals.get("file_events", 0))
         if fev >= 3:
-            pts = min(8.0, float(fev * 2.0))
             evidence.append(EvidenceItem(
                 indicator="suspicious_file_modifications",
                 observed_value=fev,
-                points_contributed=pts,
+                points_contributed=6.0,
                 source="behavior",
+                is_simulated=is_simulated,
             ))
         elif fev >= 1 and any("temp" in e.description.lower() for e in (behavior_events or [])):
             evidence.append(EvidenceItem(
@@ -186,16 +255,26 @@ def evaluate_risk(
                 observed_value=fev,
                 points_contributed=2.0,
                 source="behavior",
+                is_simulated=is_simulated,
+            ))
+        else:
+            context.append(ContextItem(
+                indicator="normal_file_activity",
+                observed_value=fev,
+                description="Low file I/O activity within ordinary process working space.",
+                source="behavior",
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("persistence_indicator", False):
         pers = float(f_vals.get("persistence_indicator", 0.0))
         if pers == 1.0:
             evidence.append(EvidenceItem(
-                indicator="registry_startup_persistence",
+                indicator="persistence_like_event",
                 observed_value=1,
                 points_contributed=RISK_WEIGHTS.get("persistence_indicator", 12.0),
                 source="behavior",
+                is_simulated=is_simulated,
             ))
 
     # -----------------------------------------------------------------------
@@ -207,22 +286,34 @@ def evaluate_risk(
             evidence.append(EvidenceItem(
                 indicator="high_outbound_connections",
                 observed_value=conns,
-                points_contributed=12.0,
+                points_contributed=RISK_WEIGHTS.get("network_connections", 10.0),
                 source="network",
+                is_simulated=is_simulated,
             ))
         elif conns >= 3:
             evidence.append(EvidenceItem(
                 indicator="moderate_outbound_connections",
                 observed_value=conns,
-                points_contributed=8.0,
+                points_contributed=6.0,
                 source="network",
+                is_simulated=is_simulated,
             ))
-        elif conns >= 1:
+        elif conns == 1:
+            # Baseline benign activity is 0 points, listed in context
+            context.append(ContextItem(
+                indicator="single_connection",
+                observed_value=1,
+                description="Single outbound network connection within normal baseline parameters.",
+                source="network",
+                is_simulated=is_simulated,
+            ))
+        elif conns == 2:
             evidence.append(EvidenceItem(
                 indicator="low_outbound_connections",
                 observed_value=conns,
-                points_contributed=4.0,
+                points_contributed=3.0,
                 source="network",
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("dns_requests", False):
@@ -231,39 +322,45 @@ def evaluate_risk(
             evidence.append(EvidenceItem(
                 indicator="multiple_dns_queries",
                 observed_value=dns,
-                points_contributed=10.0,
+                points_contributed=RISK_WEIGHTS.get("dns_requests", 6.0),
                 source="network",
+                is_simulated=is_simulated,
             ))
         elif dns == 1:
-            evidence.append(EvidenceItem(
+            # Baseline benign activity is 0 points, listed in context
+            context.append(ContextItem(
                 indicator="single_dns_query",
                 observed_value=1,
-                points_contributed=4.0,
+                description="Single standard DNS query within normal baseline.",
                 source="network",
+                is_simulated=is_simulated,
             ))
 
     if f_mask.get("repeated_connections", False):
         rep = int(f_vals.get("repeated_connections", 0))
         if rep >= 3:
             evidence.append(EvidenceItem(
-                indicator="c2_beaconing_pattern",
+                indicator="beacon_like_repeated_connections",
                 observed_value=rep,
-                points_contributed=15.0,
+                points_contributed=RISK_WEIGHTS.get("repeated_connections", 14.0),
                 source="network",
+                is_simulated=is_simulated,
             ))
         elif rep == 2:
             evidence.append(EvidenceItem(
                 indicator="repeated_connection_pattern",
                 observed_value=rep,
-                points_contributed=10.0,
+                points_contributed=8.0,
                 source="network",
+                is_simulated=is_simulated,
             ))
         elif rep == 1:
             evidence.append(EvidenceItem(
                 indicator="occasional_repeated_connection",
                 observed_value=1,
-                points_contributed=5.0,
+                points_contributed=4.0,
                 source="network",
+                is_simulated=is_simulated,
             ))
 
     # -----------------------------------------------------------------------
@@ -278,6 +375,7 @@ def evaluate_risk(
                 observed_value=f"Trojan-like ({conf:.1%})",
                 points_contributed=10.0,
                 source="classifier",
+                is_simulated=is_simulated,
             ))
         elif pred_label == "Suspicious":
             evidence.append(EvidenceItem(
@@ -285,11 +383,12 @@ def evaluate_risk(
                 observed_value=f"Suspicious ({conf:.1%})",
                 points_contributed=5.0,
                 source="classifier",
+                is_simulated=is_simulated,
             ))
 
     # Calculate exact score from evidence points
-    unclamped_score = float(sum(e.points_contributed for e in evidence))
-    risk_score = min(100, int(round(unclamped_score)))
+    raw_points = float(sum(e.points_contributed for e in evidence))
+    risk_score = min(100, int(round(raw_points)))
     risk_level = get_risk_level(risk_score)
 
     # -----------------------------------------------------------------------
@@ -357,9 +456,11 @@ def evaluate_risk(
     return {
         "classification": classification,
         "risk_score": risk_score,
-        "unclamped_score": unclamped_score,
+        "raw_points": raw_points,
+        "unclamped_score": raw_points,
         "risk_level": risk_level,
         "evidence": evidence,
+        "context": context,
         "classifier_agrees": classifier_agrees,
         "classifier_disagreement_reason": classifier_disagreement_reason,
         "summary": summary,

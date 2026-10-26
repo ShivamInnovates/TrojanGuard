@@ -6,6 +6,7 @@ in the ML training scripts (use ml/feature_names.json directly).
 """
 import os
 from pathlib import Path
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Server / Port
@@ -48,12 +49,35 @@ RISK_LEVEL_MEDIUM_MAX: int = 60
 RISK_LEVEL_HIGH_MAX: int = 80
 # Above 80 → Critical
 
-CLASSIFICATION_THRESHOLDS: dict[str, int] = {
+CLASSIFICATION_THRESHOLDS: dict[str, Any] = {
     "low_max": 30,          # 0-30: Low
     "medium_max": 60,       # 31-60: Medium
     "high_max": 80,         # 61-80: High
     "critical_min": 81,     # 81-100: Critical
-    "trojan_min_score": 61, # Trojan requires score >= 61 plus behavioral/network indicators
+    "trojan_min_score": 61, # Trojan requires score >= 61 plus behavioral or network indicators
+    "rules": [
+        {
+            "class": "Benign",
+            "score_band": "0 - 30",
+            "risk_level": "Low",
+            "deciding_factors": "Score <= 30; baseline host and network activity (single connection / DNS query) contributes 0 points and is listed in context.",
+            "static_only_allowed": True,
+        },
+        {
+            "class": "Suspicious",
+            "score_band": "31 - 60",
+            "risk_level": "Medium / High",
+            "deciding_factors": "Score between 31 and 60; or any static-only upload scoring > 30 (since static-only lacks behavioral telemetry and caps at Suspicious).",
+            "static_only_allowed": True,
+        },
+        {
+            "class": "Trojan-like",
+            "score_band": "61 - 100",
+            "risk_level": "High / Critical",
+            "deciding_factors": "Score >= 61 AND requires observed dynamic host or network telemetry (process injection/manipulation, persistence, or beacon-like repeated connections).",
+            "static_only_allowed": False,
+        },
+    ],
 }
 
 # ---------------------------------------------------------------------------
@@ -159,13 +183,13 @@ SUSPICIOUS_IMPORTS: set[str] = {
 RISK_WEIGHTS: dict[str, float] = {
     "file_entropy":          10.0,  # high entropy → packed/encrypted
     "import_count":           8.0,  # many imports → broad attack surface
-    "suspicious_imports":    15.0,  # API names associated with malicious use
+    "suspicious_imports":    16.0,  # API names associated with malicious use
     "process_count":          8.0,  # unusual process spawning
     "file_events":            8.0,  # file modification activity
-    "network_connections":   12.0,  # outbound connection volume
-    "dns_requests":          10.0,  # DNS query volume (beacon pattern)
-    "repeated_connections":  15.0,  # C2-like repeated polling
-    "persistence_indicator": 12.0,  # startup/registry-like persistence
+    "network_connections":   10.0,  # outbound connection volume
+    "dns_requests":           6.0,  # DNS query volume
+    "repeated_connections":  14.0,  # C2-like repeated polling (beacon_like_repeated_connections)
+    "persistence_indicator": 12.0,  # startup/registry-like persistence (persistence_like_event)
 }
 
 # ---------------------------------------------------------------------------

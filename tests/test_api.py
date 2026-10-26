@@ -220,3 +220,62 @@ def test_iocs_endpoint_and_404(test_client: TestClient):
     for ioc in iocs:
         assert ioc["analysis_id"] == analysis_id
         assert ioc["type"] in ("hash", "ip", "domain", "port")
+
+
+def test_demo_events_offset_never_exceeds_elapsed_time(test_client: TestClient):
+    """GET /api/demo/{id}/events never returns an event whose offset exceeds elapsed time."""
+    start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    assert start_resp.status_code == 201
+    demo_id = start_resp.json()["demo_id"]
+
+    # Poll without fast flag (normal progressive stream)
+    resp = test_client.get(f"/api/demo/{demo_id}/events")
+    assert resp.status_code == 200
+    data = resp.json()
+    elapsed = data["elapsed_seconds"]
+
+    # Invariant: Every revealed event MUST have offset_seconds <= elapsed
+    for ev in data["events"]:
+        assert ev["offset_seconds"] <= elapsed, f"Event offset {ev['offset_seconds']} exceeded elapsed time {elapsed}"
+
+
+def test_polling_completed_demo_creates_exactly_one_analysis_row(test_client: TestClient):
+    """
+    Polling a completed demo repeatedly, including concurrent requests,
+    creates exactly one analysis row in the database.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from app.database import get_conn
+
+    start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    assert start_resp.status_code == 201
+    demo_id = start_resp.json()["demo_id"]
+
+    # Concurrent polling requests with fast=True
+    def poll_complete():
+        return test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = [pool.submit(poll_complete) for _ in range(12)]
+        responses = [f.result() for f in futures]
+
+    analysis_ids = set()
+    for r in responses:
+        assert r.status_code == 200
+        data = r.json()
+        assert data["status"] == "complete"
+        assert data["analysis_id"] is not None
+        analysis_ids.add(data["analysis_id"])
+
+    # All concurrent requests returned the identical analysis_id
+    assert len(analysis_ids) == 1
+    final_analysis_id = analysis_ids.pop()
+
+    # Verify SQLite database table: exactly 1 row exists with this ID
+    with get_conn() as conn:
+        row_count = conn.execute(
+            "SELECT COUNT(*) FROM analyses WHERE id = ?",
+            (final_analysis_id,),
+        ).fetchone()[0]
+        assert row_count == 1, f"Expected 1 analysis row for demo run, found {row_count}"
+

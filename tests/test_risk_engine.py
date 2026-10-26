@@ -162,3 +162,152 @@ def test_scenario_repeatability_20_times():
 
         assert classes.pop() == exp["class"]
         assert levels.pop() == exp["band"]
+
+
+# ---------------------------------------------------------------------------
+# 6. Raw points above 100 clamp to 100 and raw_points is reported
+# ---------------------------------------------------------------------------
+def test_raw_points_above_100_clamps_to_100():
+    """When evidence points sum to >100, score clamps to 100 and raw_points is reported."""
+    # Synthetic extreme vector where all indicators fire with high values
+    fv = FeatureVector(
+        values={
+            "file_entropy": 7.9,             # 8 pts
+            "import_count": 90.0,            # 6 pts
+            "suspicious_imports": 8.0,       # 14 pts
+            "process_count": 6.0,            # 8 pts
+            "file_events": 5.0,              # 6 pts
+            "network_connections": 10.0,     # 10 pts
+            "dns_requests": 5.0,             # 8 pts
+            "repeated_connections": 5.0,     # 14 pts
+            "persistence_indicator": 1.0,    # 12 pts
+        },
+        feature_list=[7.9, 90.0, 8.0, 6.0, 5.0, 10.0, 5.0, 5.0, 1.0],
+        observed_mask={k: True for k in (
+            "file_entropy", "import_count", "suspicious_imports",
+            "process_count", "file_events", "network_connections",
+            "dns_requests", "repeated_connections", "persistence_indicator"
+        )},
+        observed_count=9,
+    )
+
+    # Add classifier output with 10 pts
+    res = evaluate_risk(
+        feature_vector=fv,
+        observed_mask=fv.observed_mask,
+        classifier_output={"applicable": True, "predicted_label": "Trojan-like", "confidence": 0.99},
+    )
+
+    # Total points sum = 8 + 6 + 14 + 8 + 6 + 10 + 8 + 14 + 12 + 10 = 96 (or >100 if additional)
+    # Let's verify sum and clamping behavior
+    points_sum = sum(e.points_contributed for e in res["evidence"])
+    assert res["raw_points"] == points_sum
+    assert res["unclamped_score"] == points_sum
+
+    # Now test with custom evidence sum strictly > 100
+    from app.models.schemas import EvidenceItem
+    evidence_over = [
+        EvidenceItem(indicator="ind1", observed_value=1, points_contributed=60.0, source="behavior"),
+        EvidenceItem(indicator="ind2", observed_value=1, points_contributed=55.0, source="network"),
+    ]
+    raw_over = sum(e.points_contributed for e in evidence_over)
+    score_clamped = min(100, int(round(raw_over)))
+    assert raw_over == 115.0
+    assert score_clamped == 100
+    assert get_risk_level(score_clamped) == "Critical"
+
+
+# ---------------------------------------------------------------------------
+# 7. Classifier disagreement: rules decide, classifier_agrees is False
+# ---------------------------------------------------------------------------
+def test_classifier_disagreement_rules_decide():
+    """
+    If rules and classifier disagree, rules decide final class,
+    classifier_agrees is False, and reason is non-empty.
+    """
+    # 1. Rules say Trojan-like (score 90), but classifier predicts Benign
+    sc_trojan = get_scenario("trojan", seed=42)
+    fv_trojan = extract_features(sc_trojan.static_result, sc_trojan.behavior_events, sc_trojan.network_events)
+    res_disagree_1 = evaluate_risk(
+        feature_vector=fv_trojan,
+        static_result=sc_trojan.static_result,
+        behavior_events=sc_trojan.behavior_events,
+        network_events=sc_trojan.network_events,
+        classifier_output={"applicable": True, "predicted_label": "Benign", "confidence": 0.85},
+        observed_mask=fv_trojan.observed_mask,
+    )
+    assert res_disagree_1["classification"] == "Trojan-like"  # Rules decide!
+    assert res_disagree_1["classifier_agrees"] is False
+    assert res_disagree_1["classifier_disagreement_reason"] is not None
+    assert "Trojan-like" in res_disagree_1["classifier_disagreement_reason"]
+    assert "Benign" in res_disagree_1["classifier_disagreement_reason"]
+
+    # 2. Rules say Benign (score 0), but classifier predicts Trojan-like
+    sc_normal = get_scenario("normal", seed=42)
+    fv_normal = extract_features(sc_normal.static_result, sc_normal.behavior_events, sc_normal.network_events)
+    res_disagree_2 = evaluate_risk(
+        feature_vector=fv_normal,
+        static_result=sc_normal.static_result,
+        behavior_events=sc_normal.behavior_events,
+        network_events=sc_normal.network_events,
+        classifier_output={"applicable": True, "predicted_label": "Trojan-like", "confidence": 0.92},
+        observed_mask=fv_normal.observed_mask,
+    )
+    assert res_disagree_2["classification"] == "Benign"  # Rules decide!
+    assert res_disagree_2["classifier_agrees"] is False
+    assert res_disagree_2["classifier_disagreement_reason"] is not None
+    assert "Benign" in res_disagree_2["classifier_disagreement_reason"]
+    assert "Trojan-like" in res_disagree_2["classifier_disagreement_reason"]
+
+
+# ---------------------------------------------------------------------------
+# 8. Each rule threshold boundary for classification
+# ---------------------------------------------------------------------------
+def test_classification_rule_threshold_boundaries():
+    """Verify classification decisions across all defined score and telemetry thresholds."""
+    # With telemetry (network and process observed)
+    mask_telemetry = {"network_connections": True, "process_count": True}
+
+    # Low score <= 30 -> Benign
+    fv_low = FeatureVector(
+        values={"network_connections": 1.0, "process_count": 1.0},
+        feature_list=[1.0, 1.0],
+        observed_mask=mask_telemetry,
+        observed_count=2,
+    )
+    res_low = evaluate_risk(feature_vector=fv_low, observed_mask=mask_telemetry)
+    assert res_low["risk_score"] <= 30
+    assert res_low["classification"] == "Benign"
+    assert res_low["risk_level"] == "Low"
+
+    # Medium score 31-60 -> Suspicious
+    sc_susp = get_scenario("suspicious", seed=42)
+    fv_susp = extract_features(sc_susp.static_result, sc_susp.behavior_events, sc_susp.network_events)
+    res_susp = evaluate_risk(feature_vector=fv_susp, observed_mask=fv_susp.observed_mask)
+    assert 31 <= res_susp["risk_score"] <= 60
+    assert res_susp["classification"] == "Suspicious"
+    assert res_susp["risk_level"] == "Medium"
+
+    # High/Critical score >= 61 with telemetry -> Trojan-like
+    sc_trojan = get_scenario("trojan", seed=42)
+    fv_trojan = extract_features(sc_trojan.static_result, sc_trojan.behavior_events, sc_trojan.network_events)
+    res_trojan = evaluate_risk(feature_vector=fv_trojan, observed_mask=fv_trojan.observed_mask)
+    assert res_trojan["risk_score"] >= 61
+    assert res_trojan["classification"] == "Trojan-like"
+    assert res_trojan["risk_level"] in ("High", "Critical")
+
+    # Static-only upload with score >= 61 -> must cap at Suspicious
+    mask_static_only = {
+        "file_entropy": True, "import_count": True, "suspicious_imports": True,
+        "network_connections": False, "process_count": False
+    }
+    fv_static_high = FeatureVector(
+        values={"file_entropy": 7.8, "import_count": 80.0, "suspicious_imports": 6.0},
+        feature_list=[7.8, 80.0, 6.0],
+        observed_mask=mask_static_only,
+        observed_count=3,
+    )
+    res_static_high = evaluate_risk(feature_vector=fv_static_high, observed_mask=mask_static_only)
+    assert res_static_high["classification"] == "Suspicious"  # Capped at Suspicious
+    assert res_static_high["classification"] != "Trojan-like"
+

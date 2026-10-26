@@ -152,21 +152,21 @@ endpoints backed by real SQL.
 
 Files created / updated:
 ```
-backend/app/config.py                 (RISK_WEIGHTS, CLASSIFICATION_THRESHOLDS)
-backend/app/models/schemas.py         (EvidenceItem, nullable confidence, classifier agreement)
-backend/app/services/risk_engine.py   (weighted scoring, evidence items, strict unobserved filtering, static cap)
-backend/app/demo/scenarios.py         (3 deterministic scenarios with second-offset polling schedule)
-backend/app/services/pipeline.py      (THE single pipeline function: static/events -> features -> ML -> risk engine -> DB)
-backend/app/services/repository.py    (enhanced get_dashboard_aggregates and JSON evidence deserialization)
+backend/app/config.py                 (RISK_WEIGHTS, CLASSIFICATION_THRESHOLDS with rules table)
+backend/app/models/schemas.py         (EvidenceItem with is_simulated, ContextItem, AnalysisReport with raw_points & context)
+backend/app/services/risk_engine.py   (weighted scoring, baseline context separation, renamed indicators, static_simulated labeling)
+backend/app/demo/scenarios.py         (3 deterministic scenarios, derived simulated SHA-256, second-offset polling schedule)
+backend/app/services/pipeline.py      (THE single pipeline function: features -> ML -> risk engine -> SQLite atomic insertion)
+backend/app/services/repository.py    (enhanced get_dashboard_aggregates and JSON evidence/context deserialization)
 backend/app/api/analysis.py           (POST /api/analyze [413/422 guards], GET /api/analysis/{id})
-backend/app/api/demo.py               (POST /api/demo/start, GET /api/demo/{id}/events progressive stream)
+backend/app/api/demo.py               (POST /api/demo/start, GET /api/demo/{id}/events progressive stream with elapsed time guard)
 backend/app/api/dashboard.py          (GET /api/dashboard — real SQL aggregates)
 backend/app/api/history.py            (GET /api/history — search, filter, sort, paginate)
 backend/app/api/threats.py            (GET /api/threats — filtered Suspicious and Trojan-like)
 backend/app/api/iocs.py               (GET /api/iocs/{id} — IOCs by analysis ID)
 backend/app/main.py                   (mounted all API routers)
-tests/test_risk_engine.py             (5 tests: boundaries, points sum, unobserved mask, static cap, 20x repeatability)
-tests/test_api.py                     (10 tests: 413, 422, text masquerading as exe, static null confidence, demo stream, dashboard zeros, history filters, threats, iocs 404)
+tests/test_risk_engine.py             (8 tests: boundaries, points sum, unobserved mask, static cap, 20x repeatability, clamping >100, disagreement, rule thresholds)
+tests/test_api.py                     (12 tests: 413, 422, text as exe, static null confidence, demo stream, dashboard zeros, history filters, threats, iocs 404, offset <= elapsed, concurrent single row)
 ```
 
 ---
