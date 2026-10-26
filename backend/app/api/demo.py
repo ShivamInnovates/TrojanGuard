@@ -7,6 +7,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -21,6 +22,7 @@ router = APIRouter(tags=["demo"])
 
 # In-memory store for active demo runs
 DEMO_RUNS: dict[str, dict[str, Any]] = {}
+DEMO_LOCK = threading.Lock()
 
 
 class DemoStartRequest(BaseModel):
@@ -58,8 +60,8 @@ class DemoEventsResponse(BaseModel):
 async def start_demo_scenario(req: DemoStartRequest):
     """
     Start an interactive demo lab run.
-    Runs the canonical pipeline to persist the analysis in SQLite, and prepares
-    the event schedule for frontend progressive polling.
+    Prepares the event schedule for frontend progressive polling.
+    Does NOT persist to SQLite until the demo completes.
     """
     sc_key = req.scenario.strip().lower()
     valid_keys = {"normal", "suspicious", "trojan"}
@@ -77,26 +79,21 @@ async def start_demo_scenario(req: DemoStartRequest):
 
     sc = get_scenario(matched_key, seed=42)
 
-    # Execute canonical pipeline to generate report and persist to SQLite
-    report = run_analysis(
-        source="demo",
-        filename=sc.filename,
-        scenario=matched_key,
-    )
-
     demo_id = str(uuid.uuid4())
     started_at = datetime.now(timezone.utc)
 
-    DEMO_RUNS[demo_id] = {
-        "demo_id": demo_id,
-        "scenario": matched_key,
-        "name": sc.name,
-        "schedule": sc.event_schedule,
-        "total_duration_seconds": sc.total_duration_seconds,
-        "total_events": len(sc.event_schedule),
-        "started_at": started_at,
-        "analysis_id": report.analysis.id,
-    }
+    with DEMO_LOCK:
+        DEMO_RUNS[demo_id] = {
+            "demo_id": demo_id,
+            "scenario": matched_key,
+            "filename": sc.filename,
+            "name": sc.name,
+            "schedule": sc.event_schedule,
+            "total_duration_seconds": sc.total_duration_seconds,
+            "total_events": len(sc.event_schedule),
+            "started_at": started_at,
+            "analysis_id": None,  # Persisted ONLY when demo run completes
+        }
 
     return DemoStartResponse(
         demo_id=demo_id,
@@ -122,7 +119,8 @@ async def get_demo_events(
 ):
     """
     Progressively stream events revealed by elapsed time since demo start.
-    When complete, status='complete' and analysis_id is populated.
+    When complete, status='complete', the final analysis is persisted via the pipeline,
+    and analysis_id is populated.
     """
     if id not in DEMO_RUNS:
         raise HTTPException(
@@ -137,6 +135,15 @@ async def get_demo_events(
     is_complete = fast or (elapsed >= run["total_duration_seconds"])
 
     if is_complete:
+        with DEMO_LOCK:
+            if run["analysis_id"] is None:
+                report = run_analysis(
+                    source="demo",
+                    filename=run["filename"],
+                    scenario=run["scenario"],
+                )
+                run["analysis_id"] = report.analysis.id
+
         revealed_events = run["schedule"]
         status_str = "complete"
         analysis_id = run["analysis_id"]

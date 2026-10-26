@@ -114,12 +114,23 @@ def test_demo_start_polling_and_retrieval(test_client: TestClient):
     assert demo_info["scenario"] == "trojan"
     assert demo_info["total_events"] > 0
 
+    # Verify a running demo does NOT appear in /api/history, /api/threats, or /api/dashboard
+    h_before = test_client.get("/api/history").json()
+    assert h_before["total"] == 0
+    t_before = test_client.get("/api/threats").json()
+    assert len(t_before) == 0
+    d_before = test_client.get("/api/dashboard").json()
+    assert d_before["total_analyses"] == 0
+
     # 2. Poll events in normal mode (should be running or have initial events)
     poll_resp = test_client.get(f"/api/demo/{demo_id}/events")
     assert poll_resp.status_code == 200
     poll_data = poll_resp.json()
     assert poll_data["demo_id"] == demo_id
     assert poll_data["scenario"] == "trojan"
+
+    # Still running, still not visible in history/threats/dashboard
+    assert test_client.get("/api/history").json()["total"] == 0
 
     # 3. Poll with fast=True to simulate completion
     fast_resp = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
@@ -128,6 +139,11 @@ def test_demo_start_polling_and_retrieval(test_client: TestClient):
     assert fast_data["status"] == "complete"
     assert fast_data["analysis_id"] is not None
     assert len(fast_data["events"]) == demo_info["total_events"]
+
+    # Now that it completed, it MUST appear in /api/history, /api/threats, and /api/dashboard
+    assert test_client.get("/api/history").json()["total"] == 1
+    assert len(test_client.get("/api/threats").json()) == 1
+    assert test_client.get("/api/dashboard").json()["total_analyses"] == 1
 
     # 4. Verify persisted analysis is retrievable via /api/analysis/{id}
     analysis_id = fast_data["analysis_id"]
@@ -147,15 +163,23 @@ def test_demo_start_polling_and_retrieval(test_client: TestClient):
 
 def test_history_search_filter_and_pagination(test_client: TestClient):
     """Test history API search, filtering by classification and severity, sort and pagination."""
-    # Seed 3 demo analyses
+    # Seed 3 demo analyses and complete them
     for sc in ("normal", "suspicious", "trojan"):
         start_resp = test_client.post("/api/demo/start", json={"scenario": sc})
         assert start_resp.status_code == 201
+        demo_id = start_resp.json()["demo_id"]
+        poll_resp = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+        assert poll_resp.status_code == 200
+        assert poll_resp.json()["status"] == "complete"
 
     # 1. Total items in history
     h_all = test_client.get("/api/history").json()
     assert h_all["total"] == 3
     assert len(h_all["items"]) == 3
+
+    # Requirement: /api/history list items must NOT include features_json
+    for item in h_all["items"]:
+        assert "features_json" not in item, f"features_json unexpectedly found in history item: {item.keys()}"
 
     # 2. Filter by classification
     h_trojan = test_client.get("/api/history?classification=Trojan-like").json()
@@ -186,10 +210,11 @@ def test_history_search_filter_and_pagination(test_client: TestClient):
 
 def test_threats_endpoint_filters_suspicious_and_trojan(test_client: TestClient):
     """GET /api/threats returns only Suspicious and Trojan-like analyses, newest first."""
-    # Seed normal and trojan
-    test_client.post("/api/demo/start", json={"scenario": "normal"})
-    test_client.post("/api/demo/start", json={"scenario": "trojan"})
-    test_client.post("/api/demo/start", json={"scenario": "suspicious"})
+    # Seed normal, trojan, suspicious and complete them
+    for sc in ("normal", "trojan", "suspicious"):
+        s_resp = test_client.post("/api/demo/start", json={"scenario": sc})
+        d_id = s_resp.json()["demo_id"]
+        test_client.get(f"/api/demo/{d_id}/events?fast=true")
 
     resp = test_client.get("/api/threats")
     assert resp.status_code == 200
@@ -278,4 +303,37 @@ def test_polling_completed_demo_creates_exactly_one_analysis_row(test_client: Te
             (final_analysis_id,),
         ).fetchone()[0]
         assert row_count == 1, f"Expected 1 analysis row for demo run, found {row_count}"
+
+
+def test_demo_sha256_synthetic_identifiers(test_client: TestClient):
+    """
+    Derive each demo sha256 as SHA-256 of a fixed string such as
+    'trojanguard-demo-trojan-v1' and label it a synthetic identifier.
+    """
+    import hashlib
+    from app.demo.scenarios import get_scenario, SCENARIO_DEFINITIONS
+
+    for sc_name in ("normal", "suspicious", "trojan"):
+        expected_seed = f"trojanguard-demo-{sc_name}-v1"
+        expected_sha = hashlib.sha256(expected_seed.encode("utf-8")).hexdigest()
+
+        sc = get_scenario(sc_name)
+        assert sc.static_result.sha256 == expected_sha
+        assert sc.meta["sha256"] == expected_sha
+        assert sc.meta["sha256_type"] == "synthetic_identifier"
+        assert sc.meta["sha256_seed_string"] == expected_seed
+
+        # When run via demo api, check persisted analysis summary labels it as synthetic identifier
+        start_resp = test_client.post("/api/demo/start", json={"scenario": sc_name})
+        assert start_resp.status_code == 201
+        d_id = start_resp.json()["demo_id"]
+        poll_resp = test_client.get(f"/api/demo/{d_id}/events?fast=true")
+        analysis_id = poll_resp.json()["analysis_id"]
+
+        analysis_resp = test_client.get(f"/api/analysis/{analysis_id}")
+        assert analysis_resp.status_code == 200
+        an_data = analysis_resp.json()
+        assert an_data["analysis"]["sha256"] == expected_sha
+        assert "synthetic identifier" in an_data["analysis"]["summary"].lower()
+
 

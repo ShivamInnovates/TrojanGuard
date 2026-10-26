@@ -20,23 +20,26 @@ from app.models.schemas import BehaviorEventCreate, NetworkEventCreate
 
 def derive_simulated_sha256(scenario_id: str) -> str:
     """
-    Deterministically derive a SHA-256 for a simulated demo scenario.
-    Clearly represents a derived synthetic profile rather than a real file hash.
+    Deterministically derive a SHA-256 for a simulated demo scenario
+    from a fixed string: 'trojanguard-demo-{scenario_id}-v1'.
+    This is explicitly labelled as a synthetic identifier.
     """
-    raw = f"trojanguard:simulated_scenario_profile:{scenario_id}:seed42"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    fixed_str = f"trojanguard-demo-{scenario_id}-v1"
+    return hashlib.sha256(fixed_str.encode("utf-8")).hexdigest()
 
 
 SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
     "normal": {
         "scenario_id": "normal",
         "name": "Normal System",
-        "description": "Ordinary background service activity, benign configuration reads, and standard single HTTPS outbound connection.",
+        "description": "Ordinary background service activity, benign configuration reads, and standard single HTTPS outbound connection. (Synthetic identifier: SHA-256 of 'trojanguard-demo-normal-v1')",
         "expected_classification": "Benign",
         "expected_risk_band": "Low",
         "filename": "sys_helper_clean.exe",
         "file_size": 1024,
         "sha256": derive_simulated_sha256("normal"),
+        "sha256_type": "synthetic_identifier",
+        "sha256_seed_string": "trojanguard-demo-normal-v1",
         "entropy": 4.20,
         "import_count": 18,
         "suspicious_import_count": 0,
@@ -44,12 +47,14 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
     "suspicious": {
         "scenario_id": "suspicious",
         "name": "Suspicious Activity",
-        "description": "Auxiliary child process creation with hidden window, executable staging in temporary directories, and repeated outbound connections.",
+        "description": "Auxiliary child process creation with hidden window, executable staging in temporary directories, and repeated outbound connections. (Synthetic identifier: SHA-256 of 'trojanguard-demo-suspicious-v1')",
         "expected_classification": "Suspicious",
         "expected_risk_band": "Medium",
         "filename": "update_agent_stager.exe",
         "file_size": 2048,
         "sha256": derive_simulated_sha256("suspicious"),
+        "sha256_type": "synthetic_identifier",
+        "sha256_seed_string": "trojanguard-demo-suspicious-v1",
         "entropy": 5.80,
         "import_count": 45,
         "suspicious_import_count": 2,
@@ -57,15 +62,17 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
     "trojan": {
         "scenario_id": "trojan",
         "name": "Trojan-like Activity",
-        "description": "Memory injection into target processes via VirtualAllocEx/WriteProcessMemory, C2 beaconing over port 4444, and startup Run key persistence.",
+        "description": "Memory injection into target processes via VirtualAllocEx/WriteProcessMemory, C2 beaconing over port 4444, and startup Run key persistence. (Synthetic identifier: SHA-256 of 'trojanguard-demo-trojan-v1')",
         "expected_classification": "Trojan-like",
         "expected_risk_band": "Critical",
         "filename": "invoice_viewer_trojan.exe",
         "file_size": 8192,
         "sha256": derive_simulated_sha256("trojan"),
+        "sha256_type": "synthetic_identifier",
+        "sha256_seed_string": "trojanguard-demo-trojan-v1",
         "entropy": 7.40,
         "import_count": 85,
-        "suspicious_import_count": 6,
+        "suspicious_import_count": 5,
     },
 }
 

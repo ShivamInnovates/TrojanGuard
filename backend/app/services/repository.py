@@ -14,6 +14,7 @@ from app.database import get_conn
 from app.models.schemas import (
     AnalysisCreate,
     AnalysisRecord,
+    AnalysisListItem,
     BehaviorEventCreate,
     BehaviorEventRecord,
     NetworkEventCreate,
@@ -404,7 +405,10 @@ def list_analyses(
         total = total_row["total"] if total_row else 0
 
         data_sql = f"""
-            SELECT * FROM analyses
+            SELECT id, filename, sha256, file_size, file_type, timestamp,
+                   classification, confidence, risk_score, risk_level,
+                   analysis_source, summary
+            FROM analyses
             {where_sql}
             ORDER BY {sort_col} {sort_dir}
             LIMIT ? OFFSET ?
@@ -412,7 +416,7 @@ def list_analyses(
         rows = c.execute(data_sql, params + [safe_limit, safe_offset]).fetchall()
 
         items = [
-            AnalysisRecord(
+            AnalysisListItem(
                 id=r["id"],
                 filename=r["filename"],
                 sha256=r["sha256"],
@@ -425,7 +429,6 @@ def list_analyses(
                 risk_level=r["risk_level"],
                 analysis_source=r["analysis_source"],
                 summary=r["summary"],
-                features_json=r["features_json"],
             )
             for r in rows
         ]

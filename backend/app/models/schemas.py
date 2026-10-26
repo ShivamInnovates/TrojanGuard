@@ -48,6 +48,27 @@ class AnalysisRecord(AnalysisBase):
     id: int
 
 
+class AnalysisListItem(BaseModel):
+    """
+    Summary analysis record for history listings and tables.
+    Omits the large features_json payload.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    filename: str
+    sha256: str
+    file_size: int = Field(ge=0)
+    file_type: str = "unknown"
+    timestamp: str  # ISO-8601 UTC
+    classification: Classification
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    risk_score: int = Field(ge=0, le=100)
+    risk_level: RiskLevel
+    analysis_source: AnalysisSource = "upload"
+    summary: str = ""
+
+
 # ---------------------------------------------------------------------------
 # 2. behavior_events table models
 # ---------------------------------------------------------------------------
@@ -163,7 +184,7 @@ class PaginatedAnalyses(BaseModel):
     total: int
     limit: int
     offset: int
-    items: list[AnalysisRecord]
+    items: list[AnalysisListItem]
 
 
 # ---------------------------------------------------------------------------

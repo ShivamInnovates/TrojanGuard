@@ -133,10 +133,10 @@ def test_features_json_column_persistence_and_retrieval(temp_db_path: Path):
     assert fetched is not None
     assert fetched.analysis.features_json == feat_payload
 
-    # Fetch through list_analyses
+    # Fetch through list_analyses (must NOT include features_json)
     listed = list_analyses(search="trojan_features", db_path=temp_db_path)
     assert listed.total == 1
-    assert listed.items[0].features_json == feat_payload
+    assert not hasattr(listed.items[0], "features_json") or "features_json" not in listed.items[0].model_dump()
 
 
 # ---------------------------------------------------------------------------

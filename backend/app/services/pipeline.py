@@ -128,6 +128,11 @@ def run_analysis(
         else None
     )
 
+    summary_text = risk_result["summary"]
+    if is_demo:
+        sc_name = scenario or "demo"
+        summary_text += f" [Synthetic identifier: SHA-256 of 'trojanguard-demo-{sc_name}-v1']"
+
     analysis_create = AnalysisCreate(
         filename=filename,
         sha256=static_result.sha256,
@@ -139,7 +144,7 @@ def run_analysis(
         risk_score=risk_result["risk_score"],
         risk_level=risk_result["risk_level"],
         analysis_source=source,
-        summary=risk_result["summary"],
+        summary=summary_text,
         features_json=features_json_str,
     )
 
