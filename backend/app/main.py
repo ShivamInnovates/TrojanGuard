@@ -100,12 +100,20 @@ async def generic_exception_handler(request: Request, exc: Exception):
 from app.api.health import router as health_router  # noqa: E402
 app.include_router(health_router, prefix="/api")
 
-# Phase 5 routers added in Phase 5:
-# from app.api.dashboard import router as dashboard_router
-# from app.api.analysis  import router as analysis_router
-# from app.api.history   import router as history_router
-# from app.api.threats   import router as threats_router
-# from app.api.iocs      import router as iocs_router
-# from app.api.demo      import router as demo_router
-# Phase 5b:
-# from app.api.model     import router as model_router
+# Phase 5 routers
+from app.api.dashboard import router as dashboard_router  # noqa: E402
+from app.api.analysis import router as analysis_router    # noqa: E402
+from app.api.history import router as history_router      # noqa: E402
+from app.api.threats import router as threats_router      # noqa: E402
+from app.api.iocs import router as iocs_router            # noqa: E402
+from app.api.demo import router as demo_router            # noqa: E402
+
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(analysis_router, prefix="/api")
+app.include_router(history_router, prefix="/api")
+app.include_router(threats_router, prefix="/api")
+app.include_router(iocs_router, prefix="/api")
+app.include_router(demo_router, prefix="/api")
+
+# Phase 5b (model_router mounted in Phase 5b):
+# from app.api.model import router as model_router

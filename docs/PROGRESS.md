@@ -41,7 +41,7 @@
 - [x] **Phase 2 — Database, Schemas & /api/health**
 - [x] **Phase 3 — Analysis Pipeline (Static + Behavioral + Network)**
 - [x] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
-- [ ] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
+- [x] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 6 — Frontend (Pages + Components + Design System)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
@@ -150,22 +150,23 @@ scenarios; single pipeline wired to `POST /api/analyze`,
 `POST /api/demo/start`, `GET /api/demo/{id}/events`; dashboard and history
 endpoints backed by real SQL.
 
-Files created:
+Files created / updated:
 ```
-backend/app/services/pipeline.py      (THE single pipeline function: features -> classifier -> risk engine -> DB)
-backend/app/services/risk_engine.py   (weighted scoring, evidence list)
-backend/app/demo/__init__.py
-backend/app/demo/scenarios.py         (3 scenario definitions)
-backend/app/demo/runner.py            (scenario -> pipeline -> DB)
-backend/app/api/dashboard.py          (GET /api/dashboard — real SQL)
-backend/app/api/analysis.py           (POST /api/analyze, GET /api/analysis/{id})
-backend/app/api/history.py            (GET /api/history)
-backend/app/api/threats.py            (GET /api/threats)
-backend/app/api/iocs.py               (GET /api/iocs/{id})
-backend/app/api/demo.py               (POST /api/demo/start, GET /api/demo/{id}/events)
-tests/test_risk_engine.py
-tests/test_demo.py
-tests/test_api.py                     (partial — grows in Phase 7)
+backend/app/config.py                 (RISK_WEIGHTS, CLASSIFICATION_THRESHOLDS)
+backend/app/models/schemas.py         (EvidenceItem, nullable confidence, classifier agreement)
+backend/app/services/risk_engine.py   (weighted scoring, evidence items, strict unobserved filtering, static cap)
+backend/app/demo/scenarios.py         (3 deterministic scenarios with second-offset polling schedule)
+backend/app/services/pipeline.py      (THE single pipeline function: static/events -> features -> ML -> risk engine -> DB)
+backend/app/services/repository.py    (enhanced get_dashboard_aggregates and JSON evidence deserialization)
+backend/app/api/analysis.py           (POST /api/analyze [413/422 guards], GET /api/analysis/{id})
+backend/app/api/demo.py               (POST /api/demo/start, GET /api/demo/{id}/events progressive stream)
+backend/app/api/dashboard.py          (GET /api/dashboard — real SQL aggregates)
+backend/app/api/history.py            (GET /api/history — search, filter, sort, paginate)
+backend/app/api/threats.py            (GET /api/threats — filtered Suspicious and Trojan-like)
+backend/app/api/iocs.py               (GET /api/iocs/{id} — IOCs by analysis ID)
+backend/app/main.py                   (mounted all API routers)
+tests/test_risk_engine.py             (5 tests: boundaries, points sum, unobserved mask, static cap, 20x repeatability)
+tests/test_api.py                     (10 tests: 413, 422, text masquerading as exe, static null confidence, demo stream, dashboard zeros, history filters, threats, iocs 404)
 ```
 
 ---

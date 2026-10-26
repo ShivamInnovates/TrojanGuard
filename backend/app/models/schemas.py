@@ -4,7 +4,7 @@ TrojanGuard — Pydantic v2 schemas.
 Defines request/response models for all 4 tables, composite reports,
 health status, and API error envelopes.
 """
-from typing import Literal
+from typing import Literal, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -30,7 +30,7 @@ class AnalysisBase(BaseModel):
     file_type: str = "unknown"
     timestamp: str  # ISO-8601 UTC
     classification: Classification
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     risk_score: int = Field(ge=0, le=100)
     risk_level: RiskLevel
     analysis_source: AnalysisSource = "upload"
@@ -118,8 +118,17 @@ class IocRecord(IocBase):
 
 
 # ---------------------------------------------------------------------------
-# Composite Analysis Report
+# Composite Analysis Report & Evidence Items
 # ---------------------------------------------------------------------------
+class EvidenceItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    indicator: str
+    observed_value: Any
+    points_contributed: float
+    source: Literal["static", "behavior", "network", "classifier"]
+
+
 class AnalysisReport(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -127,6 +136,9 @@ class AnalysisReport(BaseModel):
     behavior_events: list[BehaviorEventRecord] = Field(default_factory=list)
     network_events: list[NetworkEventRecord] = Field(default_factory=list)
     iocs: list[IocRecord] = Field(default_factory=list)
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    classifier_agrees: bool = True
+    classifier_disagreement_reason: str | None = None
 
 
 # ---------------------------------------------------------------------------

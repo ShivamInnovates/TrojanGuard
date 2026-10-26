@@ -40,12 +40,21 @@ RANDOM_SEED: int = 42
 MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB hard limit
 
 # ---------------------------------------------------------------------------
-# Risk-score thresholds
+# Risk-score thresholds & Classification Rules
+# Levels: 0-30 Low, 31-60 Medium, 61-80 High, 81-100 Critical.
 # ---------------------------------------------------------------------------
 RISK_LEVEL_LOW_MAX: int = 30
 RISK_LEVEL_MEDIUM_MAX: int = 60
 RISK_LEVEL_HIGH_MAX: int = 80
 # Above 80 → Critical
+
+CLASSIFICATION_THRESHOLDS: dict[str, int] = {
+    "low_max": 30,          # 0-30: Low
+    "medium_max": 60,       # 31-60: Medium
+    "high_max": 80,         # 61-80: High
+    "critical_min": 81,     # 81-100: Critical
+    "trojan_min_score": 61, # Trojan requires score >= 61 plus behavioral/network indicators
+}
 
 # ---------------------------------------------------------------------------
 # ML Feature Names (locked in exact order)
@@ -156,7 +165,7 @@ RISK_WEIGHTS: dict[str, float] = {
     "network_connections":   12.0,  # outbound connection volume
     "dns_requests":          10.0,  # DNS query volume (beacon pattern)
     "repeated_connections":  15.0,  # C2-like repeated polling
-    "persistence_indicator": 14.0,  # startup/registry-like persistence
+    "persistence_indicator": 12.0,  # startup/registry-like persistence
 }
 
 # ---------------------------------------------------------------------------

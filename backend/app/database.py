@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS analyses (
     file_type        TEXT    NOT NULL DEFAULT 'unknown',
     timestamp        TEXT    NOT NULL,   -- ISO-8601 UTC
     classification   TEXT    NOT NULL,   -- 'Benign' | 'Suspicious' | 'Trojan-like'
-    confidence       REAL    NOT NULL,   -- model probability [0.0, 1.0]
+    confidence       REAL,               -- model probability [0.0, 1.0] or NULL
     risk_score       INTEGER NOT NULL,   -- 0-100
     risk_level       TEXT    NOT NULL,   -- 'Low' | 'Medium' | 'High' | 'Critical'
     analysis_source  TEXT    NOT NULL DEFAULT 'upload',  -- 'upload' | 'demo' | 'seed_demo'

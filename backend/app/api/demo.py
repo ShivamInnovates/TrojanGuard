@@ -1,0 +1,159 @@
+"""
+TrojanGuard — Demo Lab API Endpoints.
+
+Endpoints:
+- POST /api/demo/start: Start an interactive demonstration scenario.
+- GET /api/demo/{id}/events: Polling stream for chronological events and status.
+"""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
+
+from app.demo.scenarios import get_scenario, SCENARIO_DEFINITIONS
+from app.models.schemas import ErrorResponse
+from app.services.pipeline import run_analysis
+
+router = APIRouter(tags=["demo"])
+
+# In-memory store for active demo runs
+DEMO_RUNS: dict[str, dict[str, Any]] = {}
+
+
+class DemoStartRequest(BaseModel):
+    scenario: str = Field(description="Scenario key: 'normal', 'suspicious', or 'trojan'")
+
+
+class DemoStartResponse(BaseModel):
+    demo_id: str
+    scenario: str
+    name: str
+    status: str
+    total_events: int
+    total_duration_seconds: int
+    started_at: str
+
+
+class DemoEventsResponse(BaseModel):
+    demo_id: str
+    scenario: str
+    status: str                         # "running" | "complete"
+    analysis_id: int | None = None      # Revealed when status is complete
+    events: list[dict[str, Any]]
+    total_events: int
+    elapsed_seconds: float
+
+
+@router.post(
+    "/demo/start",
+    response_model=DemoStartResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        422: {"description": "Invalid scenario name.", "model": ErrorResponse},
+    },
+)
+async def start_demo_scenario(req: DemoStartRequest):
+    """
+    Start an interactive demo lab run.
+    Runs the canonical pipeline to persist the analysis in SQLite, and prepares
+    the event schedule for frontend progressive polling.
+    """
+    sc_key = req.scenario.strip().lower()
+    valid_keys = {"normal", "suspicious", "trojan"}
+    matched_key = None
+    for k in valid_keys:
+        if k in sc_key:
+            matched_key = k
+            break
+
+    if not matched_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid scenario '{req.scenario}'. Expected one of: normal, suspicious, trojan.",
+        )
+
+    sc = get_scenario(matched_key, seed=42)
+
+    # Execute canonical pipeline to generate report and persist to SQLite
+    report = run_analysis(
+        source="demo",
+        filename=sc.filename,
+        scenario=matched_key,
+    )
+
+    demo_id = str(uuid.uuid4())
+    started_at = datetime.now(timezone.utc)
+
+    DEMO_RUNS[demo_id] = {
+        "demo_id": demo_id,
+        "scenario": matched_key,
+        "name": sc.name,
+        "schedule": sc.event_schedule,
+        "total_duration_seconds": sc.total_duration_seconds,
+        "total_events": len(sc.event_schedule),
+        "started_at": started_at,
+        "analysis_id": report.analysis.id,
+    }
+
+    return DemoStartResponse(
+        demo_id=demo_id,
+        scenario=matched_key,
+        name=sc.name,
+        status="running",
+        total_events=len(sc.event_schedule),
+        total_duration_seconds=sc.total_duration_seconds,
+        started_at=started_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+
+@router.get(
+    "/demo/{id}/events",
+    response_model=DemoEventsResponse,
+    responses={
+        404: {"description": "Demo run not found.", "model": ErrorResponse},
+    },
+)
+async def get_demo_events(
+    id: str,
+    fast: bool = Query(default=False, description="Instantly reveal all events (useful for tests)"),
+):
+    """
+    Progressively stream events revealed by elapsed time since demo start.
+    When complete, status='complete' and analysis_id is populated.
+    """
+    if id not in DEMO_RUNS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Demo run with ID '{id}' not found.",
+        )
+
+    run = DEMO_RUNS[id]
+    now = datetime.now(timezone.utc)
+    elapsed = (now - run["started_at"]).total_seconds()
+
+    is_complete = fast or (elapsed >= run["total_duration_seconds"])
+
+    if is_complete:
+        revealed_events = run["schedule"]
+        status_str = "complete"
+        analysis_id = run["analysis_id"]
+    else:
+        revealed_events = [
+            e for e in run["schedule"]
+            if e["offset_seconds"] <= elapsed
+        ]
+        status_str = "running"
+        analysis_id = None
+
+    return DemoEventsResponse(
+        demo_id=id,
+        scenario=run["scenario"],
+        status=status_str,
+        analysis_id=analysis_id,
+        events=revealed_events,
+        total_events=run["total_events"],
+        elapsed_seconds=round(elapsed, 2),
+    )

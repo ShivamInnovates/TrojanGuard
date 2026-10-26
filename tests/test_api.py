@@ -1,0 +1,222 @@
+"""
+TrojanGuard — API Endpoints Tests.
+
+Tests for all Phase 5 endpoints:
+- POST /api/analyze (upload limit, empty sample rejection, safe typing, static confidence null)
+- GET /api/analysis/{id} (report retrieval, 404 handling)
+- POST /api/demo/start & GET /api/demo/{id}/events (demo execution, polling, completion persistence)
+- GET /api/dashboard (empty database zeros, SQL aggregation)
+- GET /api/history (search, filters, sorting whitelist, pagination)
+- GET /api/threats (Suspicious and Trojan-like filter, order)
+- GET /api/iocs/{id} (IOC retrieval, 404 for missing analysis)
+"""
+import io
+import pytest
+from fastapi.testclient import TestClient
+
+
+def test_empty_database_dashboard_returns_zeros(test_client: TestClient):
+    """Empty database dashboard returns zeros, not an error."""
+    resp = test_client.get("/api/dashboard")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_analyses"] == 0
+    assert data["threats_detected"] == 0
+    assert data["benign_count"] == 0
+    assert data["suspicious_count"] == 0
+    assert data["trojan_count"] == 0
+    assert data["avg_risk_score"] == 0.0
+    assert data["total_iocs"] == 0
+    assert data["analyses_by_source"]["upload"] == 0
+    assert data["analyses_by_source"]["demo"] == 0
+
+
+def test_oversized_upload_gives_413(test_client: TestClient):
+    """Uploading >10 MB triggers HTTP 413 Request Entity Too Large."""
+    # 10 MB + 1 byte
+    oversized = b"X" * (10 * 1024 * 1024 + 1)
+    file_payload = {"file": ("big_payload.exe", io.BytesIO(oversized), "application/octet-stream")}
+    resp = test_client.post("/api/analyze", files=file_payload)
+    assert resp.status_code == 413
+    assert "exceeds the 10 MB upload limit" in resp.json()["detail"]
+
+
+def test_empty_upload_gives_422(test_client: TestClient):
+    """Uploading an empty file (0 bytes) returns HTTP 422 Unprocessable Entity."""
+    empty_payload = {"file": ("empty.exe", io.BytesIO(b""), "application/octet-stream")}
+    resp = test_client.post("/api/analyze", files=empty_payload)
+    assert resp.status_code == 422
+    assert "empty" in resp.json()["detail"]
+
+
+def test_renamed_txt_claiming_exe_is_analyzed_as_text(test_client: TestClient):
+    """A renamed text file claiming to be .exe is analyzed safely as text, not PE."""
+    text_content = b"#!/bin/bash\necho 'This is plain text pretending to be an exe'"
+    file_payload = {"file": ("malware_trap.exe", io.BytesIO(text_content), "application/octet-stream")}
+    resp = test_client.post("/api/analyze", files=file_payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    # Content type is script/text despite the .exe extension
+    assert data["analysis"]["file_type"] == "script/text"
+    assert data["analysis"]["filename"] == "malware_trap.exe"
+    # Static upload confidence must be null
+    assert data["analysis"]["confidence"] is None
+    # Static-only upload caps at Suspicious (never Trojan-like)
+    assert data["analysis"]["classification"] in ("Benign", "Suspicious")
+    assert data["analysis"]["classification"] != "Trojan-like"
+
+
+def test_static_only_upload_confidence_null_and_never_trojan(test_client: TestClient):
+    """Static upload never returns Trojan-like and confidence is null."""
+    # Create fake PE with high entropy or suspicious strings
+    fake_pe = b"MZ" + (b"\x90" * 500)
+    file_payload = {"file": ("sample.pe", io.BytesIO(fake_pe), "application/octet-stream")}
+    resp = test_client.post("/api/analyze", files=file_payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["analysis"]["confidence"] is None
+    assert data["analysis"]["classification"] in ("Benign", "Suspicious")
+    assert data["analysis"]["classification"] != "Trojan-like"
+
+
+def test_get_analysis_by_id_and_404(test_client: TestClient):
+    """GET /api/analysis/{id} returns full report or 404 when missing."""
+    # Missing ID returns 404
+    missing_resp = test_client.get("/api/analysis/999999")
+    assert missing_resp.status_code == 404
+    assert "not found" in missing_resp.json()["detail"].lower()
+
+    # Create an analysis via upload
+    file_payload = {"file": ("doc.pdf", io.BytesIO(b"%PDF-1.5 test"), "application/pdf")}
+    create_resp = test_client.post("/api/analyze", files=file_payload)
+    assert create_resp.status_code == 200
+    analysis_id = create_resp.json()["analysis"]["id"]
+
+    # Retrieve by ID
+    get_resp = test_client.get(f"/api/analysis/{analysis_id}")
+    assert get_resp.status_code == 200
+    retrieved = get_resp.json()
+    assert retrieved["analysis"]["id"] == analysis_id
+    assert retrieved["analysis"]["filename"] == "doc.pdf"
+    assert "evidence" in retrieved
+
+
+def test_demo_start_polling_and_retrieval(test_client: TestClient):
+    """
+    Demo run starts, can be polled, completes with analysis_id,
+    and the persisted report is retrievable via /api/analysis/{id}.
+    """
+    # 1. Start demo
+    start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    assert start_resp.status_code == 201
+    demo_info = start_resp.json()
+    demo_id = demo_info["demo_id"]
+    assert demo_info["scenario"] == "trojan"
+    assert demo_info["total_events"] > 0
+
+    # 2. Poll events in normal mode (should be running or have initial events)
+    poll_resp = test_client.get(f"/api/demo/{demo_id}/events")
+    assert poll_resp.status_code == 200
+    poll_data = poll_resp.json()
+    assert poll_data["demo_id"] == demo_id
+    assert poll_data["scenario"] == "trojan"
+
+    # 3. Poll with fast=True to simulate completion
+    fast_resp = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+    assert fast_resp.status_code == 200
+    fast_data = fast_resp.json()
+    assert fast_data["status"] == "complete"
+    assert fast_data["analysis_id"] is not None
+    assert len(fast_data["events"]) == demo_info["total_events"]
+
+    # 4. Verify persisted analysis is retrievable via /api/analysis/{id}
+    analysis_id = fast_data["analysis_id"]
+    analysis_resp = test_client.get(f"/api/analysis/{analysis_id}")
+    assert analysis_resp.status_code == 200
+    analysis_data = analysis_resp.json()
+    assert analysis_data["analysis"]["id"] == analysis_id
+    assert analysis_data["analysis"]["classification"] == "Trojan-like"
+    assert len(analysis_data["behavior_events"]) > 0
+    assert len(analysis_data["network_events"]) > 0
+    assert len(analysis_data["evidence"]) > 0
+
+    # 5. Invalid demo ID gives 404
+    bad_demo = test_client.get("/api/demo/non-existent-id/events")
+    assert bad_demo.status_code == 404
+
+
+def test_history_search_filter_and_pagination(test_client: TestClient):
+    """Test history API search, filtering by classification and severity, sort and pagination."""
+    # Seed 3 demo analyses
+    for sc in ("normal", "suspicious", "trojan"):
+        start_resp = test_client.post("/api/demo/start", json={"scenario": sc})
+        assert start_resp.status_code == 201
+
+    # 1. Total items in history
+    h_all = test_client.get("/api/history").json()
+    assert h_all["total"] == 3
+    assert len(h_all["items"]) == 3
+
+    # 2. Filter by classification
+    h_trojan = test_client.get("/api/history?classification=Trojan-like").json()
+    assert h_trojan["total"] == 1
+    assert h_trojan["items"][0]["classification"] == "Trojan-like"
+
+    h_benign = test_client.get("/api/history?classification=Benign").json()
+    assert h_benign["total"] == 1
+    assert h_benign["items"][0]["classification"] == "Benign"
+
+    # 3. Search query
+    h_search = test_client.get("/api/history?search=trojan").json()
+    assert h_search["total"] == 1
+    assert "trojan" in h_search["items"][0]["filename"]
+
+    # 4. Sort and order
+    h_sorted = test_client.get("/api/history?sort=risk_score&order=asc").json()
+    scores = [it["risk_score"] for it in h_sorted["items"]]
+    assert scores == sorted(scores)
+
+    # 5. Pagination
+    h_paged = test_client.get("/api/history?limit=1&offset=1").json()
+    assert h_paged["total"] == 3
+    assert len(h_paged["items"]) == 1
+    assert h_paged["limit"] == 1
+    assert h_paged["offset"] == 1
+
+
+def test_threats_endpoint_filters_suspicious_and_trojan(test_client: TestClient):
+    """GET /api/threats returns only Suspicious and Trojan-like analyses, newest first."""
+    # Seed normal and trojan
+    test_client.post("/api/demo/start", json={"scenario": "normal"})
+    test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    test_client.post("/api/demo/start", json={"scenario": "suspicious"})
+
+    resp = test_client.get("/api/threats")
+    assert resp.status_code == 200
+    threats = resp.json()
+    # 2 threats: trojan and suspicious (normal is excluded)
+    assert len(threats) == 2
+    for t in threats:
+        assert t["classification"] in ("Suspicious", "Trojan-like")
+
+
+def test_iocs_endpoint_and_404(test_client: TestClient):
+    """GET /api/iocs/{id} returns IOC list or 404 for missing analysis."""
+    # 404 for missing analysis ID
+    missing_resp = test_client.get("/api/iocs/888888")
+    assert missing_resp.status_code == 404
+
+    # Run trojan demo to generate IOCs
+    start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
+    demo_id = start_resp.json()["demo_id"]
+    fast_resp = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+    analysis_id = fast_resp.json()["analysis_id"]
+
+    # Retrieve IOCs
+    iocs_resp = test_client.get(f"/api/iocs/{analysis_id}")
+    assert iocs_resp.status_code == 200
+    iocs = iocs_resp.json()
+    assert len(iocs) > 0
+    for ioc in iocs:
+        assert ioc["analysis_id"] == analysis_id
+        assert ioc["type"] in ("hash", "ip", "domain", "port")

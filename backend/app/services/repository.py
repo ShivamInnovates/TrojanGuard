@@ -74,7 +74,7 @@ def insert_analysis(
                 data.get("file_type", "unknown"),
                 data["timestamp"],
                 data["classification"],
-                float(data["confidence"]),
+                float(data["confidence"]) if data.get("confidence") is not None else None,
                 int(data["risk_score"]),
                 data["risk_level"],
                 data.get("analysis_source", "upload"),
@@ -190,7 +190,7 @@ def insert_analysis(
             file_type=data.get("file_type", "unknown"),
             timestamp=data["timestamp"],
             classification=data["classification"],
-            confidence=float(data["confidence"]),
+            confidence=float(data["confidence"]) if data.get("confidence") is not None else None,
             risk_score=int(data["risk_score"]),
             risk_level=data["risk_level"],
             analysis_source=data.get("analysis_source", "upload"),
@@ -198,11 +198,29 @@ def insert_analysis(
             features_json=data.get("features_json"),
         )
 
+        evidence_items: list[EvidenceItem] = []
+        classifier_agrees = True
+        disagreement_reason: str | None = None
+        if data.get("features_json"):
+            try:
+                import json
+                fj = json.loads(data["features_json"]) if isinstance(data["features_json"], str) else data["features_json"]
+                if isinstance(fj, dict) and "evidence" in fj:
+                    from app.models.schemas import EvidenceItem
+                    evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                    classifier_agrees = fj.get("classifier_agrees", True)
+                    disagreement_reason = fj.get("classifier_disagreement_reason")
+            except Exception:
+                pass
+
         return AnalysisReport(
             analysis=analysis_record,
             behavior_events=inserted_behaviors,
             network_events=inserted_networks,
             iocs=inserted_iocs,
+            evidence=evidence_items,
+            classifier_agrees=classifier_agrees,
+            classifier_disagreement_reason=disagreement_reason,
         )
 
     if conn is not None:
@@ -285,11 +303,29 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
             for r in i_rows
         ]
 
+        evidence_items: list[EvidenceItem] = []
+        classifier_agrees = True
+        disagreement_reason: str | None = None
+        if row["features_json"]:
+            try:
+                import json
+                fj = json.loads(row["features_json"])
+                if isinstance(fj, dict) and "evidence" in fj:
+                    from app.models.schemas import EvidenceItem
+                    evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
+                    classifier_agrees = fj.get("classifier_agrees", True)
+                    disagreement_reason = fj.get("classifier_disagreement_reason")
+            except Exception:
+                pass
+
         return AnalysisReport(
             analysis=analysis,
             behavior_events=behaviors,
             network_events=networks,
             iocs=iocs,
+            evidence=evidence_items,
+            classifier_agrees=classifier_agrees,
+            classifier_disagreement_reason=disagreement_reason,
         )
 
     if conn is not None:
@@ -405,6 +441,16 @@ def get_dashboard_aggregates(db_path: Path | None = None, conn: sqlite3.Connecti
             """
         ).fetchone()
 
+        total_iocs_row = c.execute("SELECT COUNT(*) AS total_iocs FROM iocs").fetchone()
+
+        source_dist_rows = c.execute(
+            """
+            SELECT analysis_source, COUNT(*) AS count
+            FROM analyses
+            GROUP BY analysis_source
+            """
+        ).fetchall()
+
         threat_dist_rows = c.execute(
             """
             SELECT classification, COUNT(*) AS count
@@ -421,14 +467,29 @@ def get_dashboard_aggregates(db_path: Path | None = None, conn: sqlite3.Connecti
             """
         ).fetchall()
 
+        tot = totals_row["total_samples"] if totals_row else 0
+        benign_c = totals_row["benign_count"] if totals_row and totals_row["benign_count"] else 0
+        susp_c = totals_row["suspicious_count"] if totals_row and totals_row["suspicious_count"] else 0
+        trojan_c = totals_row["trojan_count"] if totals_row and totals_row["trojan_count"] else 0
+        threats_det = susp_c + trojan_c
+        iocs_c = total_iocs_row["total_iocs"] if total_iocs_row else 0
+
+        source_dict = {"upload": 0, "demo": 0, "seed_demo": 0}
+        for r in source_dist_rows:
+            source_dict[r["analysis_source"]] = r["count"]
+
         return {
-            "total_samples": totals_row["total_samples"] if totals_row else 0,
+            "total_samples": tot,
+            "total_analyses": tot,
+            "threats_detected": threats_det,
+            "total_iocs": iocs_c,
             "avg_risk_score": round(float(totals_row["avg_risk_score"] or 0.0), 1) if totals_row else 0.0,
-            "benign_count": totals_row["benign_count"] if totals_row else 0,
-            "suspicious_count": totals_row["suspicious_count"] if totals_row else 0,
-            "trojan_count": totals_row["trojan_count"] if totals_row else 0,
-            "high_risk_count": totals_row["high_risk_count"] if totals_row else 0,
-            "critical_risk_count": totals_row["critical_risk_count"] if totals_row else 0,
+            "benign_count": benign_c,
+            "suspicious_count": susp_c,
+            "trojan_count": trojan_c,
+            "high_risk_count": totals_row["high_risk_count"] if totals_row and totals_row["high_risk_count"] else 0,
+            "critical_risk_count": totals_row["critical_risk_count"] if totals_row and totals_row["critical_risk_count"] else 0,
+            "analyses_by_source": source_dict,
             "threat_distribution": {r["classification"]: r["count"] for r in threat_dist_rows},
             "severity_distribution": {r["risk_level"]: r["count"] for r in severity_dist_rows},
         }
