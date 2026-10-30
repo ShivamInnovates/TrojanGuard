@@ -101,10 +101,18 @@ export async function getAnalysis(id) {
 }
 
 /**
+ * Retrieve catalog of available demo scenarios
+ */
+export async function getDemoScenarios() {
+  return request('/api/demo/scenarios')
+}
+
+/**
  * Start an interactive simulated demo run
  * @param {'normal'|'suspicious'|'trojan'} scenario
  */
 export async function startDemo(scenario = 'trojan') {
+
   return request('/api/demo/start', {
     method: 'POST',
     body: JSON.stringify({ scenario }),

@@ -43,7 +43,8 @@
 - [x] **Phase 4 — ML Training & Inference Pipeline (synthetic)**
 - [x] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
 - [x] **Phase 6a — Backend Report Shape & Frontend Design System**
-- [ ] **Phase 6b — Frontend Pages & Workflows**
+- [x] **Phase 6b — Demo Lab Page (/demo)**
+- [ ] **Phase 6c — Analysis, History & Model Evaluation Pages**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
 - [ ] **Phase 8 — Documentation, README & Viva Notes**
@@ -232,6 +233,35 @@ frontend/src/charts/DetectionTimeline.jsx       (Recharts area chart for detecti
 frontend/src/pages/Styleguide.jsx   (comprehensive styleguide rendering all components with sample data)
 frontend/src/App.jsx                (React Router routes: /, /analyze, /analysis/:id, /demo, /history, /model, /styleguide)
 ```
+
+---
+
+## Phase 6b — Demo Lab Page (/demo)
+
+**Goal:** Demonstration Simulation Lab page with streaming synthetic telemetry
+driven entirely from the backend. No hardcoded results, scores, classifications,
+or events in the frontend.
+
+Files created / updated:
+```
+backend/app/models/schemas.py       (Added ScenarioItem schema)
+backend/app/api/demo.py             (Added GET /api/demo/scenarios endpoint)
+tests/test_api.py                   (Added test_list_demo_scenarios verifying scenario list)
+frontend/src/services/api.js        (Added getDemoScenarios API method)
+frontend/src/pages/DemoLab.jsx      (Interactive Demo Lab page with 1000ms polling, EventStream, RiskGauge, top 3 evidence, and 5-failure threshold)
+frontend/src/App.jsx                (Mounted DemoLab component at /demo route)
+docs/DEMO_QA.md                     (Manual QA checklist covering all scenarios, resets, disconnects, and unmounts)
+```
+
+Verification Summary (HTTP Walkthrough):
+- `GET /api/demo/scenarios` dynamically returned 3 scenarios: `normal`, `suspicious`, `trojan`.
+- Normal System: 6 events in 8s sequence, 8 polls, Classification: `Benign`, Score: `0` (Low), Confidence: `98.9%`, 0 positive evidence items.
+- Suspicious Activity: 9 events in 10s sequence, 10 polls, Classification: `Suspicious`, Score: `43` (Medium), Confidence: `96.9%`, top evidence: repeated_connection_pattern (+8.0 pts), suspicious_file_modifications (+6.0 pts), moderate_outbound_connections (+6.0 pts).
+- Trojan-like Activity: 14 events in 15s sequence, 15 polls, Classification: `Trojan-like`, Score: `88` (Critical), Confidence: `98.5%`, top evidence: beacon_like_repeated_connections (+14.0 pts), suspicious_api_imports (+12.0 pts), persistence_like_event (+12.0 pts).
+- Frontend production bundle `npm run build` compiled cleanly (zero errors).
+- All 48 backend tests passing.
+- All dev and preview servers terminated.
+
 
 
 ---

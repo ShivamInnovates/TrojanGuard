@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.demo.scenarios import get_scenario, SCENARIO_DEFINITIONS
-from app.models.schemas import ErrorResponse
+from app.models.schemas import ErrorResponse, ScenarioItem
 from app.services.pipeline import run_analysis
 
 router = APIRouter(tags=["demo"])
@@ -49,6 +49,29 @@ class DemoEventsResponse(BaseModel):
     elapsed_seconds: float
 
 
+@router.get(
+    "/demo/scenarios",
+    response_model=list[ScenarioItem],
+)
+async def list_demo_scenarios():
+    """
+    Return catalog of available demo scenarios with duration.
+    Kept in one place in the backend.
+    """
+    items = []
+    for key in ("normal", "suspicious", "trojan"):
+        sc = get_scenario(key, seed=42)
+        items.append(
+            ScenarioItem(
+                id=key,
+                name=sc.name,
+                description=sc.description,
+                total_duration_seconds=sc.total_duration_seconds,
+            )
+        )
+    return items
+
+
 @router.post(
     "/demo/start",
     response_model=DemoStartResponse,
@@ -58,6 +81,7 @@ class DemoEventsResponse(BaseModel):
     },
 )
 async def start_demo_scenario(req: DemoStartRequest):
+
     """
     Start an interactive demo lab run.
     Prepares the event schedule for frontend progressive polling.

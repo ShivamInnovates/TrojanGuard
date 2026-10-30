@@ -226,3 +226,13 @@ class ErrorResponse(BaseModel):
     error: str
     detail: str | list[str] | dict | None = None
     code: int = 500
+
+
+class ScenarioItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    description: str
+    total_duration_seconds: int
+

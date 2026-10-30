@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-rout
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Styleguide from './pages/Styleguide'
+import DemoLab from './pages/DemoLab'
 import EmptyState from './components/EmptyState'
 
 function Layout({ children }) {
@@ -75,15 +76,7 @@ export default function App() {
             }
           />
           <Route path="/analysis/:id" element={<AnalysisRoutePlaceholder />} />
-          <Route
-            path="/demo"
-            element={
-              <PlaceholderPage
-                title="Demo Simulation Lab"
-                description="Deterministic synthetic threat scenarios (Normal, Suspicious, Trojan-like) with streaming telemetry."
-              />
-            }
-          />
+          <Route path="/demo" element={<DemoLab />} />
           <Route
             path="/history"
             element={

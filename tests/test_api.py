@@ -101,11 +101,26 @@ def test_get_analysis_by_id_and_404(test_client: TestClient):
     assert "evidence" in retrieved
 
 
+def test_list_demo_scenarios(test_client: TestClient):
+    """GET /api/demo/scenarios returns the 3 scenarios with id, name, description, duration."""
+    resp = test_client.get("/api/demo/scenarios")
+    assert resp.status_code == 200
+    scenarios = resp.json()
+    assert len(scenarios) == 3
+    ids = [s["id"] for s in scenarios]
+    assert ids == ["normal", "suspicious", "trojan"]
+    for s in scenarios:
+        assert s["name"]
+        assert s["description"]
+        assert s["total_duration_seconds"] > 0
+
+
 def test_demo_start_polling_and_retrieval(test_client: TestClient):
     """
     Demo run starts, can be polled, completes with analysis_id,
     and the persisted report is retrievable via /api/analysis/{id}.
     """
+
     # 1. Start demo
     start_resp = test_client.post("/api/demo/start", json={"scenario": "trojan"})
     assert start_resp.status_code == 201
