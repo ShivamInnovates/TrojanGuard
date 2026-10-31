@@ -72,7 +72,7 @@ SCENARIO_DEFINITIONS: dict[str, dict[str, Any]] = {
         "sha256_seed_string": "trojanguard-demo-trojan-v1",
         "entropy": 7.40,
         "import_count": 85,
-        "suspicious_import_count": 5,
+        "suspicious_import_count": 6,
     },
 }
 

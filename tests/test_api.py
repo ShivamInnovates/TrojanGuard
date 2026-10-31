@@ -447,4 +447,69 @@ def test_analysis_endpoint_returns_structured_shape_and_dashboard_sql_aggregates
     assert d_populated["network_activity"][0]["connections"] > 0
 
 
+def test_real_demo_endpoints_exact_scores_and_repeatability(test_client: TestClient):
+    """
+    Calls the real demo endpoints (start, poll until complete, fetch analysis)
+    and asserts the exact score, raw points, classification, and confidence for each scenario.
+    Guarantees deterministic results across repeated runs.
+    """
+    scenario_expectations = {
+        "normal": {
+            "score": 0,
+            "raw_points": 0.0,
+            "classification": "Benign",
+            "risk_level": "Low",
+            "confidence_approx": 0.9893,
+        },
+        "suspicious": {
+            "score": 43,
+            "raw_points": 43.0,
+            "classification": "Suspicious",
+            "risk_level": "Medium",
+            "confidence_approx": 0.9692,
+        },
+        "trojan": {
+            "score": 92,
+            "raw_points": 92.0,
+            "classification": "Trojan-like",
+            "risk_level": "Critical",
+            "confidence_approx": 0.9969,
+            "suspicious_imports_pts": 16.0,
+            "suspicious_imports_val": 6,
+        },
+    }
+
+    for sc_id, exp in scenario_expectations.items():
+        # Start demo
+        start_res = test_client.post("/api/demo/start", json={"scenario": sc_id})
+        assert start_res.status_code == 201
+        demo_id = start_res.json()["demo_id"]
+
+        # Poll until complete (using fast=True for instantaneous completion)
+        poll_res = test_client.get(f"/api/demo/{demo_id}/events?fast=true")
+        assert poll_res.status_code == 200
+        poll_data = poll_res.json()
+        assert poll_data["status"] == "complete"
+        analysis_id = poll_data["analysis_id"]
+        assert analysis_id is not None
+
+        # Fetch canonical analysis report
+        rep_res = test_client.get(f"/api/analysis/{analysis_id}")
+        assert rep_res.status_code == 200
+        rep = rep_res.json()
+
+        assert rep["risk_score"] == exp["score"], f"Expected score {exp['score']}, got {rep['risk_score']}"
+        assert rep["raw_points"] == exp["raw_points"], f"Expected raw_points {exp['raw_points']}, got {rep['raw_points']}"
+        assert rep["classification"] == exp["classification"]
+        assert rep["risk_level"] == exp["risk_level"]
+        assert round(rep["confidence"], 4) == exp["confidence_approx"]
+
+        if sc_id == "trojan":
+            # Verify exact points contributed for suspicious_api_imports
+            susp_ev = next(e for e in rep["evidence"] if e["indicator"] == "suspicious_api_imports")
+            assert susp_ev["points_contributed"] == exp["suspicious_imports_pts"]
+            assert susp_ev["observed_value"] == exp["suspicious_imports_val"]
+            assert susp_ev["source"] == "static_simulated"
+
+
 

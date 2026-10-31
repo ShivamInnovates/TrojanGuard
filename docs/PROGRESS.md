@@ -44,7 +44,8 @@
 - [x] **Phase 5 — Detection & Risk Engine + Demo Scenarios + Core API**
 - [x] **Phase 6a — Backend Report Shape & Frontend Design System**
 - [x] **Phase 6b — Demo Lab Page (/demo)**
-- [ ] **Phase 6c — Analysis, History & Model Evaluation Pages**
+- [x] **Phase 6c — Analysis Results Page (/analysis/:id)**
+- [ ] **Phase 6d — Dashboard, History & Model Evaluation Pages**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
 - [ ] **Phase 8 — Documentation, README & Viva Notes**
@@ -263,6 +264,39 @@ Verification Summary (HTTP Walkthrough):
 - All dev and preview servers terminated.
 
 
+
+---
+
+## Phase 6c — Analysis Results Page (/analysis/:id)
+
+**Goal:** Detailed Analysis Results page populated dynamically from `GET /api/analysis/{id}`.
+No hardcoded scores, metrics, or telemetry. Full support for live uploads, demo simulations,
+error states (loading, 404, offline retry), and static-only empty states.
+
+**Investigated & Resolved:**
+- **Trojan Demo Disparity Resolved:** In commit `38de32a`, `suspicious_import_count` in `backend/app/demo/scenarios.py` was inadvertently altered from `6` to `5`. Because the risk engine awards `16.0` points for `suspicious_imports >= 6` and `12.0` points for `>= 4`, this 1-import change reduced points from 16 to 12 (dropping risk score from 92 to 88) and shifted Random Forest tree votes from `99.7%` to `98.5%`. Restoring `suspicious_import_count: 6` restored exact consistency across 20 consecutive runs through the live API:
+  - Normal: score 0, Benign, Low, confidence 98.9%
+  - Suspicious: score 43, Suspicious, Medium, confidence 96.9%
+  - Trojan-like: score 92, Trojan-like, Critical, confidence 99.7% (with `suspicious_api_imports` +16.0 pts)
+- Added [test_real_demo_endpoints_exact_scores_and_repeatability](file:///home/shivam/TrojanGuard/tests/test_api.py) in `tests/test_api.py` asserting exact scores, raw points, and evidence values across all scenarios.
+
+Files created / updated:
+```
+backend/app/demo/scenarios.py       (Restored suspicious_import_count to 6 in trojan scenario)
+tests/test_api.py                   (Added test_real_demo_endpoints_exact_scores_and_repeatability)
+frontend/src/pages/AnalysisDetail.jsx (Complete Analysis Results page with RiskGauge, share bars, collapsible context, static profiles, telemetry timeline, IOCs, and recommended steps)
+frontend/src/App.jsx                (Mounted AnalysisDetail on /analysis/:id route)
+```
+
+Verification Summary:
+- 5 analyses retrieved and validated via real backend endpoints:
+  - `DEMO_NORMAL`: score 0 (Low), Benign, 98.9% confidence, 4 behavior events, 2 network events, 4 IOCs.
+  - `DEMO_SUSPICIOUS`: score 43 (Medium), Suspicious, 96.9% confidence, 5 behavior events, 4 network events, 4 IOCs.
+  - `DEMO_TROJAN`: score 92 (Critical), Trojan-like, 99.7% confidence, 7 behavior events, 7 network events, 6 IOCs.
+  - `UPLOAD_TEXT` (sample_notes.txt): score 0 (Low), Benign, Classifier "Not applicable", empty behavioral and network telemetry showing "Not available for static-only analysis".
+  - `UPLOAD_PE` (minimal_valid.exe): score 0 (Low), Benign, Classifier "Not applicable", empty telemetry showing "Not available for static-only analysis".
+- Verified rendered UI in real browser session via `browser_subagent`.
+- `npm run build` compiled cleanly. All 49 backend tests passing. All dev servers stopped.
 
 ---
 

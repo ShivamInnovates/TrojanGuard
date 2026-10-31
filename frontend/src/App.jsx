@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Styleguide from './pages/Styleguide'
 import DemoLab from './pages/DemoLab'
+import AnalysisDetail from './pages/AnalysisDetail'
 import EmptyState from './components/EmptyState'
 
 function Layout({ children }) {
@@ -75,7 +76,7 @@ export default function App() {
               />
             }
           />
-          <Route path="/analysis/:id" element={<AnalysisRoutePlaceholder />} />
+          <Route path="/analysis/:id" element={<AnalysisDetail />} />
           <Route path="/demo" element={<DemoLab />} />
           <Route
             path="/history"
