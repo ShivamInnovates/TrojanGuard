@@ -1,10 +1,14 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
-import Styleguide from './pages/Styleguide'
+import Dashboard from './pages/Dashboard'
+import SampleAnalysis from './pages/SampleAnalysis'
+import History from './pages/History'
+import ModelEvaluation from './pages/ModelEvaluation'
 import DemoLab from './pages/DemoLab'
 import AnalysisDetail from './pages/AnalysisDetail'
+import Styleguide from './pages/Styleguide'
 import EmptyState from './components/EmptyState'
 
 function Layout({ children }) {
@@ -32,24 +36,14 @@ function Layout({ children }) {
   )
 }
 
-function PlaceholderPage({ title, description }) {
+function NotFoundPage() {
   return (
     <div className="space-y-4">
       <EmptyState
-        title={title}
-        description={description}
+        title="404 — Not Found"
+        description="The requested SOC console route does not exist."
       />
     </div>
-  )
-}
-
-function AnalysisRoutePlaceholder() {
-  const { id } = useParams()
-  return (
-    <PlaceholderPage
-      title={`Analysis Report #${id}`}
-      description="Detailed analysis breakdown, static inspection, extracted features, IOCs, and explainable evidence view."
-    />
   )
 }
 
@@ -58,54 +52,14 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <PlaceholderPage
-                title="SOC Dashboard"
-                description="Live security metrics, classification breakdown, detection volume timeline, and network activity."
-              />
-            }
-          />
-          <Route
-            path="/analyze"
-            element={
-              <PlaceholderPage
-                title="Sample Analysis"
-                description="Safe in-memory upload of executable binaries or documents for static and heuristic threat evaluation."
-              />
-            }
-          />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/analyze" element={<SampleAnalysis />} />
           <Route path="/analysis/:id" element={<AnalysisDetail />} />
           <Route path="/demo" element={<DemoLab />} />
-          <Route
-            path="/history"
-            element={
-              <PlaceholderPage
-                title="Detection History"
-                description="Full catalog of evaluated samples with search, classification filtering, severity sorting, and pagination."
-              />
-            }
-          />
-          <Route
-            path="/model"
-            element={
-              <PlaceholderPage
-                title="Model Evaluation"
-                description="Random Forest classifier metrics, confusion matrix, ROC-AUC curves, and synthetic dataset distribution."
-              />
-            }
-          />
+          <Route path="/history" element={<History />} />
+          <Route path="/model" element={<ModelEvaluation />} />
           <Route path="/styleguide" element={<Styleguide />} />
-          <Route
-            path="*"
-            element={
-              <PlaceholderPage
-                title="404 — Not Found"
-                description="The requested SOC console route does not exist."
-              />
-            }
-          />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

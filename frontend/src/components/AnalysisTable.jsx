@@ -94,7 +94,7 @@ export default function AnalysisTable({
 
                     {/* Filename & Type */}
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <FileText size={15} className="text-[var(--color-accent)] shrink-0" />
                         <span className="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors truncate max-w-[200px]">
                           {item.filename || 'sample.bin'}
@@ -102,6 +102,19 @@ export default function AnalysisTable({
                         {item.file_type && (
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-muted)] uppercase shrink-0">
                             {item.file_type}
+                          </span>
+                        )}
+                        {(item.analysis_source === 'demo' || item.analysis_source === 'seed_demo') && (
+                          <span
+                            className="text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold shrink-0"
+                            style={{
+                              backgroundColor: 'var(--color-surface-3)',
+                              color: 'var(--color-accent)',
+                              border: '1px solid var(--color-accent-dim)',
+                            }}
+                            title="Synthetic demonstration telemetry"
+                          >
+                            Demonstration data
                           </span>
                         )}
                       </div>

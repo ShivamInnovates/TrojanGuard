@@ -45,7 +45,7 @@
 - [x] **Phase 6a — Backend Report Shape & Frontend Design System**
 - [x] **Phase 6b — Demo Lab Page (/demo)**
 - [x] **Phase 6c — Analysis Results Page (/analysis/:id)**
-- [ ] **Phase 6d — Dashboard, History & Model Evaluation Pages**
+- [x] **Phase 6d — Dashboard, History & Model Evaluation Pages**
 - [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
 - [ ] **Phase 8 — Documentation, README & Viva Notes**
@@ -297,6 +297,48 @@ Verification Summary:
   - `UPLOAD_PE` (minimal_valid.exe): score 0 (Low), Benign, Classifier "Not applicable", empty telemetry showing "Not available for static-only analysis".
 - Verified rendered UI in real browser session via `browser_subagent`.
 - `npm run build` compiled cleanly. All 49 backend tests passing. All dev servers stopped.
+
+---
+
+## Phase 6d — Dashboard, History & Model Evaluation Pages
+
+**Goal:** Complete SOC Dashboard (`/`), Sample Analysis & Inspection (`/analyze`),
+Detection History (`/history`), and Model Evaluation (`/model`) pages. Everything
+loaded dynamically from the backend with zero hardcoded metrics.
+
+Files created / updated:
+```
+frontend/src/components/AnalysisTable.jsx (Added 'Demonstration data' badge for demo and seed_demo rows)
+frontend/src/pages/Dashboard.jsx          (6 StatCards, 3 Recharts, 10 recent analyses table, refresh with spinner, zero-state guidance)
+frontend/src/pages/SampleAnalysis.jsx     (Drag-and-drop upload, 10 MB / 0-byte guards, 413/422 alerts, in-memory notice, demo scenario picker)
+frontend/src/pages/History.jsx            (Search by filename/SHA-256, classification & severity dropdowns, sort/order, pagination, URL search params)
+frontend/src/pages/ModelEvaluation.jsx    (Model architecture details and clean 'Model training pending (Phase 5b)' state)
+frontend/src/App.jsx                     (Mounted all real pages to React Router routes)
+```
+
+Verification Summary:
+- **Dashboard (`/`)**:
+  - StatCards: Total Analyses (matches SQL count exactly), Benign, Suspicious, Trojan-like, High+Critical count, Average Risk Score.
+  - ThreatDistributionChart, NetworkActivityChart, and DetectionTimeline render live data from `GET /api/dashboard`.
+  - Recent analyses table displays the latest 10 samples with "Demonstration data" tags on demo rows and links directly to `/analysis/:id`.
+  - Refresh button re-fetches without reloading the page; displays last-updated timestamp.
+- **Sample Analysis (`/analyze`)**:
+  - Clear in-memory safety notice: files evaluated in memory, never executed or written to disk.
+  - Client-side validation prevents 0-byte and >10 MB files before transmission.
+  - Backend 413 and 422 errors displayed with human-readable error banners.
+  - Safe demo samples picker triggers simulation scenarios with clear simulated indicators.
+  - Progress bar animates through upload and analysis; reports SHA-256, file type, entropy, and link to full report.
+- **History (`/history`)**:
+  - Live query against `GET /api/history` with debounced search and classification/severity filtering.
+  - Full server-side pagination (10 items per page, total count, range) with URL query parameter synchronization.
+  - Empty state with "Clear all filters" button.
+- **Sidebar & Routes**:
+  - All sidebar links point to fully functional pages.
+  - `/model` displays active synthetic RF architecture and clean "Model training pending (Phase 5b)" notice.
+- **Verification Walkthrough**:
+  - Ran automated end-to-end Python test (`verify_phase6d.py`) covering small file upload, 0-byte file (422), >10 MB file (413), demo scenario run, dashboard/history count matching, and pagination.
+  - Real browser walkthrough executed via `browser_subagent` recording and verifying Dashboard, History, and Sample Analysis pages.
+  - `npm run build` compiled with zero errors. All 49 backend pytest tests passed. Dev servers stopped.
 
 ---
 
