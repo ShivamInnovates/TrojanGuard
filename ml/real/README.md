@@ -66,14 +66,17 @@ Evaluations B and C must be accurately characterized as **evaluations on unseen 
 ### Robustness Ablation Study
 To verify whether the model is merely memorizing the `svcscan` service count artifact, we ablated the features and re-evaluated:
 - **Baseline (Full 51 Features)**:
-  - Eval B: Accuracy = `100.0%`, Recall = `100.0%`, F1 = `100.0%`
-  - Eval C: Macro Recall = `99.75%`, Macro F1 = `99.88%`, Benign FPR = `0.00%`
+  - Eval B (Test: 1,825 Trojan, 5,855 Benign): Accuracy = `100.0%`, Recall = `100.0%`, F1 = `100.0%` (0 missed)
+  - Eval C (5-Fold Held-Out Families): Macro Recall = `99.75%`, Macro F1 = `99.88%`, Benign FPR = `0.00%`
 - **Ablation 1: Removing all 6 `svcscan.*` Features (45 predictors remaining)**:
-  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%` (only 5 Trojan test samples missed)
+  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%` (5 of 1,825 Trojan test samples missed)
   - Eval C: Macro Recall = `99.52%`, Macro F1 = `99.76%`, Benign FPR = `0.00%` (Reconyc recall: `98.28%`, Zeus: `99.49%`, Scar: `99.85%`, Emotet: `100.0%`, Refroso: `100.0%`)
 - **Ablation 2: Removing Top-5 Most Important Features (46 predictors remaining)**:
-  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%`
+  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%` (5 of 1,825 Trojan test samples missed)
   - Eval C: Macro Recall = `99.69%`, Macro F1 = `99.85%`, Benign FPR = `0.00%`
+
+*Why do both B ablations miss the exact same 5 Trojan samples?*
+Both ablations remove the primary separating artifacts (`svcscan.nservices` and `svcscan.kernel_drivers`). All 5 missed test dumps belong to the exact same held-out Scar malware sample (`Trojan-Scar-940031d1f698ef92d0c76c762cb41bff` across runs 1, 6, 7, 8, and 9). Without the `svcscan` artifact, this sample's predicted Trojan probability drops from >99% to borderline values (0.38–0.48 without `svcscan.*`, and 0.37–0.48 without top-5), falling just below the 0.50 binary classification threshold.
 
 *Conclusion*: Even when `svcscan.*` is entirely removed, the model still detects unseen Trojan families at **99.52% macro recall** within this lab environment, substituting other memory anomalies (e.g., `handles.nsection`, `malfind.ninjections`, `dlllist.ndlls`). However, because benign baseline leakage cannot be prevented without benign session identifiers, this high performance reflects intra-dataset consistency, not bulletproof wild deployment.
 

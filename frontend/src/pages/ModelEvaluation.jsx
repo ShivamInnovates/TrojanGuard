@@ -650,7 +650,9 @@ export default function ModelEvaluation() {
           <div className="space-y-2 pt-1">
             <div className="text-xs font-mono font-bold text-[var(--color-text-primary)] flex items-center justify-between">
               <span>Evaluation B Ablation (Grouped by Sample Hash — Unseen Samples)</span>
-              <span className="text-[10px] font-normal text-[var(--color-text-muted)]">Test: 1,896 Trojan, 5,847 Benign</span>
+              <span className="text-[10px] font-normal text-[var(--color-text-muted)]">
+                Test: {(robustness_ablation.eval_b_comparison.test_trojan_count || 1825).toLocaleString()} Trojan, {(robustness_ablation.eval_b_comparison.test_benign_count || 5855).toLocaleString()} Benign
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans border-collapse">
@@ -676,7 +678,9 @@ export default function ModelEvaluation() {
                     <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.full_features.precision * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.full_features.recall * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.full_features.f1_score * 100).toFixed(2)}%</td>
-                    <td className="py-2 px-3 text-[var(--color-risk-low)]">0 / 1,896</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">
+                      0 / {(robustness_ablation.eval_b_comparison.test_trojan_count || 1825).toLocaleString()}
+                    </td>
                   </tr>
                   <tr className="hover:bg-[var(--color-surface-2)]">
                     <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">All svcscan.* Removed</td>
@@ -685,7 +689,9 @@ export default function ModelEvaluation() {
                     <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.no_svcscan.precision * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.no_svcscan.recall * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_svcscan.f1_score * 100).toFixed(2)}%</td>
-                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">5 / 1,896</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">
+                      {(robustness_ablation.eval_b_comparison.no_svcscan.missed_trojans ?? 5)} / {(robustness_ablation.eval_b_comparison.test_trojan_count || 1825).toLocaleString()}
+                    </td>
                   </tr>
                   <tr className="hover:bg-[var(--color-surface-2)]">
                     <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">Top-5 Features Removed</td>
@@ -694,7 +700,9 @@ export default function ModelEvaluation() {
                     <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.no_top5.precision * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.no_top5.recall * 100).toFixed(2)}%</td>
                     <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_top5.f1_score * 100).toFixed(2)}%</td>
-                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">5 / 1,896</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">
+                      {(robustness_ablation.eval_b_comparison.no_top5.missed_trojans ?? 5)} / {(robustness_ablation.eval_b_comparison.test_trojan_count || 1825).toLocaleString()}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -780,7 +788,13 @@ export default function ModelEvaluation() {
               Academic Viva Takeaway & Limitations
             </div>
             <p className="text-[var(--color-text-secondary)] leading-relaxed">
-              When <code>svcscan.*</code> or the top-5 features are ablated, recall drops by only ~0.23% (from 100.0% to 99.73% on Eval B; 99.75% to 99.52% on Eval C) because decision trees substitute other correlated lab-environment features (such as <code>handles.nsection</code>, <code>malfind.ninjections</code>, and <code>dlllist.ndlls</code>). Crucially, because benign memory dumps contain no sample IDs, cross-fold benign leakage cannot be ruled out. Therefore, these metrics demonstrate robustness <em>within this VM testbed</em>, NOT proof of generalizability to arbitrary wild enterprise endpoints.
+              When <code>svcscan.*</code> or the top-5 features are ablated, recall drops by only ~0.27% on Evaluation B (from 100.0% to 99.73%, missing exactly 5 out of 1,825 test Trojans) and ~0.23% on Evaluation C (99.75% to 99.52%).
+            </p>
+            <p className="text-[var(--color-text-secondary)] leading-relaxed">
+              <strong>Why do both B ablations miss the exact same 5 test dumps?</strong> Both ablations remove the primary separating artifacts (<code>svcscan.nservices</code> and <code>svcscan.kernel_drivers</code>). All 5 missed test rows belong to the exact same held-out Trojan sample (<code>Trojan-Scar-940031d1f698ef92d0c76c762cb41bff</code> across runs 1, 6, 7, 8, and 9). Without the <code>svcscan</code> artifact, this sample's predicted Trojan probability drops from &gt;99% to borderline values (0.38–0.48 without <code>svcscan.*</code>, and 0.37–0.48 without top-5), falling just below the 0.50 binary classification threshold.
+            </p>
+            <p className="text-[var(--color-text-secondary)] leading-relaxed">
+              Crucially, because benign memory dumps contain no sample IDs, cross-fold benign leakage cannot be ruled out. Therefore, these metrics demonstrate robustness <em>within this VM testbed</em>, NOT proof of generalizability to arbitrary wild enterprise endpoints.
             </p>
           </div>
         </div>

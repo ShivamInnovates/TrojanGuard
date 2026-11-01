@@ -193,3 +193,41 @@ def test_api_real_predict_csv_upload(test_client: TestClient):
     huge_files = {"file": ("huge.csv", huge_bytes, "text/csv")}
     resp_huge = test_client.post("/api/model/real/predict", files=huge_files)
     assert resp_huge.status_code == 413
+
+
+def test_ablation_test_set_sizes_match_evaluations(test_client: TestClient):
+    """Assert that the ablation test-set sizes equal the corresponding evaluation's test-set sizes."""
+    resp = test_client.get("/api/model/real/metrics")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # Evaluation B comparison test-set sizes
+    eval_b = data["evaluations"]["eval_b_grouped_sample_hash"]
+    eval_b_test_size = eval_b["test_size"]
+    cm_b = eval_b["confusion_matrix"]
+    expected_benign_b = cm_b[0][0] + cm_b[0][1]
+    expected_trojan_b = cm_b[1][0] + cm_b[1][1]
+    assert expected_benign_b + expected_trojan_b == eval_b_test_size
+
+    # Must equal Evaluation B's grouped split counts (5855 benign and 1825 trojan)
+    assert expected_benign_b == 5855
+    assert expected_trojan_b == 1825
+
+    ablation_b = data["robustness_ablation"]["eval_b_comparison"]
+    assert ablation_b["test_total_count"] == eval_b_test_size
+    assert ablation_b["test_benign_count"] == expected_benign_b
+    assert ablation_b["test_trojan_count"] == expected_trojan_b
+
+    # Verify each condition within Evaluation B ablation shares the exact same test-set sizes
+    for cond in ["full_features", "no_svcscan", "no_top5"]:
+        assert ablation_b[cond]["test_benign_count"] == expected_benign_b
+        assert ablation_b[cond]["test_trojan_count"] == expected_trojan_b
+
+    # Evaluation C comparison test-set sizes
+    eval_c = data["evaluations"]["eval_c_leave_one_family_out"]
+    ablation_c = data["robustness_ablation"]["eval_c_comparison"]
+    for family, res in eval_c["per_family_results"].items():
+        assert ablation_c["full_features"]["per_family_test_counts"][family] == res["test_count"]
+        assert ablation_c["no_svcscan"]["per_family_test_counts"][family] == res["test_count"]
+        assert ablation_c["no_top5"]["per_family_test_counts"][family] == res["test_count"]
+

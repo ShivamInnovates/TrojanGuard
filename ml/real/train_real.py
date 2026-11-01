@@ -411,8 +411,14 @@ def train_and_evaluate():
             "top_5_features_removed": top5_features,
             "svcscan_features_removed": svcscan_features,
             "eval_b_comparison": {
+                "test_trojan_count": int((y[test_idx_b] == 1).sum()),
+                "test_benign_count": int((y[test_idx_b] == 0).sum()),
+                "test_total_count": len(test_idx_b),
                 "full_features": {
                     "features_count": len(full_feature_names),
+                    "test_trojan_count": int((y[test_idx_b] == 1).sum()),
+                    "test_benign_count": int((y[test_idx_b] == 0).sum()),
+                    "missed_trojans": int((y[test_idx_b] == 1).sum() - eval_b_full["confusion_matrix"][1][1]),
                     "accuracy": eval_b_full["accuracy"],
                     "precision": eval_b_full["precision"],
                     "recall": eval_b_full["recall"],
@@ -420,6 +426,9 @@ def train_and_evaluate():
                 },
                 "no_svcscan": {
                     "features_count": len(features_no_svcscan),
+                    "test_trojan_count": int((y[test_idx_b] == 1).sum()),
+                    "test_benign_count": int((y[test_idx_b] == 0).sum()),
+                    "missed_trojans": int((y[test_idx_b] == 1).sum() - eval_b_no_svcscan["confusion_matrix"][1][1]),
                     "accuracy": eval_b_no_svcscan["accuracy"],
                     "precision": eval_b_no_svcscan["precision"],
                     "recall": eval_b_no_svcscan["recall"],
@@ -427,6 +436,9 @@ def train_and_evaluate():
                 },
                 "no_top5": {
                     "features_count": len(features_no_top5),
+                    "test_trojan_count": int((y[test_idx_b] == 1).sum()),
+                    "test_benign_count": int((y[test_idx_b] == 0).sum()),
+                    "missed_trojans": int((y[test_idx_b] == 1).sum() - eval_b_no_top5["confusion_matrix"][1][1]),
                     "accuracy": eval_b_no_top5["accuracy"],
                     "precision": eval_b_no_top5["precision"],
                     "recall": eval_b_no_top5["recall"],
@@ -434,6 +446,8 @@ def train_and_evaluate():
                 },
             },
             "eval_c_comparison": {
+                "benign_test_count": len(benign_test_idx),
+                "trojan_test_count": int((y == 1).sum()),
                 "full_features": {
                     "features_count": len(full_feature_names),
                     "macro_recall": eval_c_full["macro_average_recall"],
@@ -441,6 +455,7 @@ def train_and_evaluate():
                     "macro_accuracy": eval_c_full["macro_fold_accuracy"],
                     "benign_fpr": eval_c_full["macro_benign_fpr"],
                     "per_family_recall": {k: v["recall"] for k, v in eval_c_full["per_family_results"].items()},
+                    "per_family_test_counts": {k: v["test_count"] for k, v in eval_c_full["per_family_results"].items()},
                 },
                 "no_svcscan": {
                     "features_count": len(features_no_svcscan),
@@ -449,6 +464,7 @@ def train_and_evaluate():
                     "macro_accuracy": eval_c_no_svcscan["macro_fold_accuracy"],
                     "benign_fpr": eval_c_no_svcscan["macro_benign_fpr"],
                     "per_family_recall": {k: v["recall"] for k, v in eval_c_no_svcscan["per_family_results"].items()},
+                    "per_family_test_counts": {k: v["test_count"] for k, v in eval_c_no_svcscan["per_family_results"].items()},
                 },
                 "no_top5": {
                     "features_count": len(features_no_top5),
@@ -457,6 +473,7 @@ def train_and_evaluate():
                     "macro_accuracy": eval_c_no_top5["macro_fold_accuracy"],
                     "benign_fpr": eval_c_no_top5["macro_benign_fpr"],
                     "per_family_recall": {k: v["recall"] for k, v in eval_c_no_top5["per_family_results"].items()},
+                    "per_family_test_counts": {k: v["test_count"] for k, v in eval_c_no_top5["per_family_results"].items()},
                 },
             },
         },

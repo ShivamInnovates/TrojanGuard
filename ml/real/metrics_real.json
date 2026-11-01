@@ -44,7 +44,7 @@
     "n_estimators": 100,
     "random_state": 42,
     "class_weight": "balanced",
-    "trained_at": "2026-11-01T06:15:38.002988+00:00"
+    "trained_at": "2026-11-01T06:44:58.767722+00:00"
   },
   "probability_bands": {
     "description": "Output calibrated into defensive confidence tiers, not hardcoded labels",
@@ -369,8 +369,14 @@
       "svcscan.nactive"
     ],
     "eval_b_comparison": {
+      "test_trojan_count": 1825,
+      "test_benign_count": 5855,
+      "test_total_count": 7680,
       "full_features": {
         "features_count": 51,
+        "test_trojan_count": 1825,
+        "test_benign_count": 5855,
+        "missed_trojans": 0,
         "accuracy": 1.0,
         "precision": 1.0,
         "recall": 1.0,
@@ -378,6 +384,9 @@
       },
       "no_svcscan": {
         "features_count": 45,
+        "test_trojan_count": 1825,
+        "test_benign_count": 5855,
+        "missed_trojans": 5,
         "accuracy": 0.9993,
         "precision": 1.0,
         "recall": 0.9973,
@@ -385,6 +394,9 @@
       },
       "no_top5": {
         "features_count": 46,
+        "test_trojan_count": 1825,
+        "test_benign_count": 5855,
+        "missed_trojans": 5,
         "accuracy": 0.9993,
         "precision": 1.0,
         "recall": 0.9973,
@@ -392,6 +404,8 @@
       }
     },
     "eval_c_comparison": {
+      "benign_test_count": 5847,
+      "trojan_test_count": 9480,
       "full_features": {
         "features_count": 51,
         "macro_recall": 0.9975,
@@ -404,6 +418,13 @@
           "Refroso": 1.0,
           "Scar": 1.0,
           "Zeus": 0.9985
+        },
+        "per_family_test_counts": {
+          "Emotet": 1967,
+          "Reconyc": 1568,
+          "Refroso": 1996,
+          "Scar": 2000,
+          "Zeus": 1949
         }
       },
       "no_svcscan": {
@@ -418,6 +439,13 @@
           "Refroso": 1.0,
           "Scar": 0.9985,
           "Zeus": 0.9949
+        },
+        "per_family_test_counts": {
+          "Emotet": 1967,
+          "Reconyc": 1568,
+          "Refroso": 1996,
+          "Scar": 2000,
+          "Zeus": 1949
         }
       },
       "no_top5": {
@@ -432,6 +460,13 @@
           "Refroso": 1.0,
           "Scar": 1.0,
           "Zeus": 0.9949
+        },
+        "per_family_test_counts": {
+          "Emotet": 1967,
+          "Reconyc": 1568,
+          "Refroso": 1996,
+          "Scar": 2000,
+          "Zeus": 1949
         }
       }
     }

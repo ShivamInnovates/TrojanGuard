@@ -394,11 +394,12 @@ tests/test_real_model.py      (8 unit & API tests for real-data pipeline)
     - Trojan ($n=9,480$): Mean = 388.752743, Median = 389.0, Std = 1.459964
     - Persistent ~5.5-service delta identified as a laboratory virtual machine baseline artifact.
   - Ablation 1 (All 6 `svcscan.*` features removed, 45 features remaining):
-    - Eval B: Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86% (only 5 Trojan test samples missed out of 1,896)
-    - Eval C: Macro Recall 99.52%, Macro F1 99.76%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.28%, Refroso: 100%, Scar: 99.85%, Zeus: 99.49%)
+    - Eval B (Test: 1,825 Trojan, 5,855 Benign): Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86% (5 of 1,825 Trojan test samples missed)
+    - Eval C (5 Folds): Macro Recall 99.52%, Macro F1 99.76%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.28%, Refroso: 100%, Scar: 99.85%, Zeus: 99.49%)
   - Ablation 2 (Top-5 features by importance removed, 46 features remaining: `svcscan.nservices`, `handles.nsection`, `svcscan.kernel_drivers`, `svcscan.shared_process_services`, `handles.avg_handles_per_proc`):
-    - Eval B: Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86%
-    - Eval C: Macro Recall 99.69%, Macro F1 99.85%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.98%, Refroso: 100%, Scar: 100%, Zeus: 99.49%)
+    - Eval B (Test: 1,825 Trojan, 5,855 Benign): Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86% (5 of 1,825 Trojan test samples missed)
+    - Eval C (5 Folds): Macro Recall 99.69%, Macro F1 99.85%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.98%, Refroso: 100%, Scar: 100%, Zeus: 99.49%)
+  - **Identical 5 Missed Samples Analysis**: Both B ablations miss the exact same 5 test dumps (all 5 dumps belong to the single Scar sample `Trojan-Scar-940031d1f698ef92d0c76c762cb41bff` across runs 1, 6, 7, 8, 9). Removing `svcscan.nservices` and `svcscan.kernel_drivers` in both ablations causes this borderline sample's predicted probability to drop from >99% to 0.37–0.48, crossing just below the 0.50 binary classification threshold.
 - **Honest Academic Evaluation Characterization**:
   - Wording in `ml/real/README.md` and `/model` explicitly states that Evaluations B and C evaluate performance on unseen samples/families from the same laboratory environment, NOT proof of real-world generalization.
   - States clearly that benign rows have no sample IDs, so cross-fold benign leakage cannot be ruled out.
@@ -407,7 +408,8 @@ tests/test_real_model.py      (8 unit & API tests for real-data pipeline)
   - Probability band mapping: Benign [0.00, 0.35), Suspicious [0.35, 0.65], Trojan-like (0.65, 1.00].
   - Interactive prediction tester on `/model` accepts JSON feature vectors and CSV uploads.
   - Script-relative paths (`Path(__file__).resolve().parent`) ensure artifacts land strictly in `ml/real/` regardless of invocation CWD.
-  - All 57 backend tests passing. `npm run build` succeeds cleanly. Git status clean.
+  - Added `test_ablation_test_set_sizes_match_evaluations` asserting ablation test set counts match evaluation counts.
+  - All 58 backend tests passing. `npm run build` succeeds cleanly. Git status clean.
 
 ---
 
