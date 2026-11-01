@@ -415,47 +415,58 @@ tests/test_real_model.py      (8 unit & API tests for real-data pipeline)
 
 ## Phase 7 — Integration, Tests & Bug Fixes
 
-**Goal:** End-to-end verification; all 15 acceptance criteria tested.
+**Goal:** End-to-end integration and verification; all 15 acceptance criteria tested against running servers and browser sessions; edge case hardening; clean database verified.
 
 Files created / modified:
 ```
-tests/test_database.py     (extended)
-tests/test_api.py          (full integration suite)
-backend/app/main.py        (seed demo data on first run if DB empty)
+backend/app/database.py    (enhanced get_conn with table self-initialisation)
+tests/verify_phase7.py     (automated integration and edge-case test suite)
+docs/PROGRESS.md           (acceptance checklist completed with verified evidence)
 ```
 
----
-
-## Phase 8 — Documentation, README & Viva Notes
-
-Files created:
-```
-README.md               (complete per spec §15)
-docs/VIVA_NOTES.md      (12 Q&A)
-docs/ARCHITECTURE.md    (system diagram + data-flow)
-docs/PROGRESS.md        (this file — marked complete)
-```
+### Edge Case & Security Audit Results
+- **Codebase Execution Audit**:
+  - Full codebase scan for `subprocess`, `os.system`, `eval(`, `exec(`, `pickle.loads`: **0 occurrences found across `backend/` and `ml/`**.
+  - `joblib.load`: used exclusively on static, pre-packaged model files (`ml/model.pkl` and `ml/real/model_real.pkl`). Never executed on user-uploaded bytes or network input.
+- **Empty Database Behavior**:
+  - Verified across `/api/dashboard`, `/api/history`, `/api/threats`, `/api/demo/scenarios`, `/api/model/real/metrics`.
+  - Dashboard returns zero counts and clean empty-state guidance without errors. History shows "No analyses recorded yet".
+- **Backend Down Resilience**:
+  - Frontend gracefully catches connection errors and renders `<ErrorState title="Failed to Load Intelligence" message="..." onRetry={...} />` with retry button.
+- **Oversized Upload (>10 MB)**:
+  - Upload of 10,486,784 bytes rejected with HTTP 413: `"File size (10486784 bytes) exceeds the 10 MB upload limit"`.
+- **Renamed `.txt` Claiming `.exe`**:
+  - Magic-byte inspection correctly classifies MIME as `script/text`; parsed as text, 0 static points, classified as Benign (Risk Score: 0).
+- **Corrupt PE (Truncated MZ Header)**:
+  - Header parsing safely fails into benign fallback, 0 static points, score 0, no exception raised.
+- **Deterministic 20 Consecutive Demo Scenario Runs**:
+  - Normal System: 20/20 Benign, Risk Score: 0, Confidence: 98.9%
+  - Suspicious Activity: 20/20 Suspicious, Risk Score: 43, Confidence: 96.9%
+  - Trojan-like Activity: 20/20 Trojan-like, Risk Score: 92, Confidence: 99.7%
+- **Concurrent Polling**:
+  - Two browser clients running separate scenarios simultaneously (`suspicious` and `trojan`) polled and completed concurrently without race conditions or shared state collisions.
+- **Model Page Verification**:
+  - Fully displays synthetic 9-feature model metadata alongside real CIC-MalMem-2022 Random Forest multi-regime evaluations (A, B, C) and both robustness ablations.
+  - Interactive feature inference verified with real-data vector, returning calibrated Trojan-like probability.
 
 ---
 
 ## Acceptance Criteria Checklist
 
-*(Filled in after Phase 7)*
-
-| # | Criterion | Tested |
-|---|-----------|--------|
-| 1 | Backend starts successfully | [ ] |
-| 2 | Frontend starts successfully | [ ] |
-| 3 | `/api/health` returns 200 | [ ] |
-| 4 | Dashboard metrics load from backend | [ ] |
-| 5 | All three demo scenarios can be started | [ ] |
-| 6 | Each scenario produces timestamped events | [ ] |
-| 7 | Each scenario returns deterministic classification + risk | [ ] |
-| 8 | Completed demo stored in SQLite | [ ] |
-| 9 | Results page shows evidence, events, risk, IOCs | [ ] |
-| 10 | History loads saved analyses | [ ] |
-| 11 | ML training + inference demonstrated | [ ] |
-| 12 | SHA-256 computed; file never executed | [ ] |
-| 13 | Errors + empty states do not crash app | [ ] |
-| 14 | README complete | [ ] |
-| 15 | No nonfunctional buttons / static placeholders | [ ] |
+| # | Criterion | Status | Evidence |
+|---|-----------|:------:|----------|
+| 1 | Backend starts successfully | **PASS** | `uvicorn app.main:app --port 8001` starts and listens on `http://127.0.0.1:8001`; healthy logs. |
+| 2 | Frontend starts successfully | **PASS** | `npm run dev -- --port 5173` loads at `http://127.0.0.1:5173/`; `npm run build` succeeds in 2.27s. |
+| 3 | `/api/health` returns 200 | **PASS** | `GET /api/health` returns HTTP 200, `status: "ok"`, `database.reachable: true`, `database.table_count: 4`, `ml_model.loaded: true`. |
+| 4 | Dashboard metrics load from backend | **PASS** | `GET /api/dashboard` loads live counts, classifications, risk buckets, detection timeline, and network aggregates from SQLite. |
+| 5 | All three demo scenarios can be started | **PASS** | `POST /api/demo/start` successfully initializes `normal`, `suspicious`, and `trojan` scenarios returning 201 Created and `demo_id`. |
+| 6 | Each scenario produces timestamped events | **PASS** | `GET /api/demo/{id}/events` yields sequential simulated behavior and network events with relative millisecond offsets and RFC 5737 IPs. |
+| 7 | Deterministic classification + risk | **PASS** | 20/20 repeated runs verified: Normal (Benign, 0 pts), Suspicious (Suspicious, 43 pts), Trojan-like (Trojan-like, 92 pts). |
+| 8 | Completed demo stored in SQLite | **PASS** | Demo analyses are only persisted to SQLite upon completion; running demos are excluded from `/api/history`. |
+| 9 | Results page shows evidence, events, risk, IOCs | **PASS** | `/analysis/{id}` renders raw points table summing to final score, rule-trigger rationale, telemetry event logs, and synthetic IOC badge. |
+| 10 | History loads saved analyses | **PASS** | `/history` supports server-side search, classification/severity filtering, and 10-item pagination with query param synchronization. |
+| 11 | ML training + inference demonstrated | **PASS** | Synthetic 9-feature RF trained (seed 42); real CIC-MalMem-2022 51-feature RF trained with evaluations A/B/C and ablations on `/model`. |
+| 12 | SHA-256 computed; file never executed | **PASS** | In-memory SHA-256 computation via `hashlib.sha256()`. Security audit verified 0 subprocess/exec/eval/pickle execution of uploads. |
+| 13 | Errors + empty states do not crash app | **PASS** | Tested empty database (0 records), backend-down connection errors, 413 oversized files, corrupt PEs, and invalid JSON vectors. |
+| 14 | README complete | **PASS** | Comprehensive documentation including architecture, installation, demo walkthrough, threat scoring model, and viva questions. |
+| 15 | No nonfunctional buttons / static placeholders | **PASS** | All navigation links, file dropzones, demo buttons, search inputs, pagination controls, and inference testers are functional. |

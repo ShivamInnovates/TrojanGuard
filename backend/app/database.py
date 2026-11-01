@@ -112,7 +112,14 @@ def get_conn(db_path: Path | None = None):
             rows = conn.execute("SELECT * FROM analyses").fetchall()
     """
     path = db_path or DB_PATH
+    if not path.is_file():
+        init_db(path)
     conn = sqlite3.connect(path)
+    has_table = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='analyses'").fetchone()
+    if not has_table:
+        conn.close()
+        init_db(path)
+        conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row       # access columns by name
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
