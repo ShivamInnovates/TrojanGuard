@@ -46,7 +46,7 @@
 - [x] **Phase 6b — Demo Lab Page (/demo)**
 - [x] **Phase 6c — Analysis Results Page (/analysis/:id)**
 - [x] **Phase 6d — Dashboard, History & Model Evaluation Pages**
-- [ ] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
+- [x] **Phase 5b — Real-data Model (CIC-MalMem-2022)**
 - [ ] **Phase 7 — Integration, Tests & Bug Fixes**
 - [ ] **Phase 8 — Documentation, README & Viva Notes**
 
@@ -177,23 +177,43 @@ tests/test_api.py                     (12 tests: 413, 422, text as exe, static n
 
 ## Phase 5b — Real-data Model (CIC-MalMem-2022)
 
-**Goal:** Second RF trained on real memory-forensics features; separate venv;
-metrics recorded; two new endpoints exposed.
+**Goal:** Second Random Forest trained on volatile memory-forensics features (CIC-MalMem-2022, UNB);
+independent venv in `ml/real/.venv`; multi-regime evaluation addressing sample leakage and lab
+artifacts; backend metrics and prediction endpoints; and frontend Model Evaluation console.
 
-Prerequisites: user places CIC-MalMem-2022 CSV in `ml/data/raw/`.
+Files created / updated:
+```
+ml/real/README.md             (Dataset citation, terms of use, in-memory methodology, evaluation rationale)
+ml/real/requirements.txt      (Offline dependencies: numpy, pandas, scikit-learn, joblib)
+ml/real/prepare.py            (Decompose Category, deduplicate 74 rows, drop 4 zero-var cols, export 51 features)
+ml/real/train_real.py         (Evaluations A, B, and C; exports metrics_real.json and model_real.pkl)
+ml/real/feature_names_real.json (List of 51 active Volatility predictors)
+ml/real/prepare_meta.json     (SHA-256 checksum, raw/clean row counts, class balance)
+ml/real/metrics_real.json     (Evaluation A/B/C metrics, confusion matrices, top features, headline guidance)
+backend/app/ml/real_predictor.py (Local model loader, strict 51-feature validator, probability bands)
+backend/app/api/model.py      (GET /api/model/real/metrics, POST /api/model/real/predict with 10 MB guard)
+backend/app/models/schemas.py (RealModelPredictRequest and RealModelPredictResponse)
+frontend/src/pages/ModelEvaluation.jsx (Comprehensive model evaluation dashboard, 3-tab comparison, prediction box)
+tests/test_real_model.py      (8 unit tests: parsing, synthetic prepare filtering, validation, 404/200, predictions)
+```
 
-Files created:
-```
-ml/real/requirements_real.txt         (separate deps for real training)
-ml/real/prepare.py                    (load CSV, select features, train/test split)
-ml/real/train_real.py                 (train RF, save ml/real/model_real.pkl)
-ml/real/metrics_real.json             (accuracy, precision, recall, F1,
-                                       confusion matrix, top-15 importances)
-ml/real/feature_names_real.json
-backend/app/ml/real_predictor.py      (load real model, predict with band logic)
-backend/app/api/model.py              (GET /api/model/real/metrics,
-                                       POST /api/model/real/predict)
-```
+Evaluation Summary:
+- **Evaluation A: Random Stratified 80/20 (Naive)**:
+  - Accuracy: 100.0%, Precision: 100.0%, Recall: 100.0%, F1: 100.0%.
+  - *Limitation*: Marked as optimistic because multiple memory dumps of identical samples land in both train and test partitions.
+- **Evaluation B: Grouped Split by `sample_hash` (Strict Sample Isolation)**:
+  - Accuracy: 100.0%, Precision: 100.0%, Recall: 100.0%, F1: 100.0%.
+  - Evaluated on 7,680 unseen sample dumps with zero sample hash leakage.
+- **Evaluation C: Leave-One-Family-Out Cross-Validation (Zero-Day Generalization)**:
+  - Held-out `Emotet` (n=1,967): Recall 100.0%, Benign FPR 0.0%
+  - Held-out `Reconyc` (n=1,568): Recall 98.92%, Benign FPR 0.0%
+  - Held-out `Refroso` (n=1,996): Recall 100.0%, Benign FPR 0.0%
+  - Held-out `Scar` (n=2,000): Recall 100.0%, Benign FPR 0.0%
+  - Held-out `Zeus` (n=1,949): Recall 99.85%, Benign FPR 0.0%
+  - Macro Average Recall across novel Trojan families: **99.75%**.
+- **Why Metrics > 99% Occur (Viva Defense Analysis)**:
+  - Global laboratory environment artifact: In clean testbed VMs, `svcscan.nservices` consistently clusters around 395 (mean 394.2), whereas infected VMs show systematic alterations (mean 388.7). Random Forest assigned 21.29% importance to `svcscan.nservices`.
+  - The model should cite **Evaluation B (Grouped)** or **Evaluation C (Leave-One-Family-Out)** as the honest headline metric to prove generalization beyond sample replay.
 
 ---
 

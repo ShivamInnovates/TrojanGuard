@@ -236,3 +236,20 @@ class ScenarioItem(BaseModel):
     description: str
     total_duration_seconds: int
 
+
+# ---------------------------------------------------------------------------
+# Real Data Model (CIC-MalMem-2022) Schemas
+# ---------------------------------------------------------------------------
+class RealModelPredictRequest(BaseModel):
+    features: dict[str, Any] = Field(description="Dictionary of 51 memory-forensics feature values")
+
+
+class RealModelPredictResponse(BaseModel):
+    trojan_probability: float
+    benign_probability: float
+    trojan_probability_percent: float
+    probability_band: str
+    band_description: str
+    features_evaluated: int
+    data_notice: str
+

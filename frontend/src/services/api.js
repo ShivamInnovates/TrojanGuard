@@ -158,3 +158,28 @@ export async function getThreats() {
 export async function getIocs(analysisId) {
   return request(`/api/iocs/${analysisId}`)
 }
+
+/**
+ * Retrieve real data model evaluation metrics (CIC-MalMem-2022)
+ */
+export async function getRealModelMetrics() {
+  return request('/api/model/real/metrics')
+}
+
+/**
+ * Test real-data model inference on pre-extracted feature vector or CSV
+ * @param {object|FormData} payload
+ */
+export async function predictRealModel(payload) {
+  if (payload instanceof FormData) {
+    return request('/api/model/real/predict', {
+      method: 'POST',
+      body: payload,
+    })
+  }
+  return request('/api/model/real/predict', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+

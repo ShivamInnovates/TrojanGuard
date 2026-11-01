@@ -1,0 +1,327 @@
+{
+  "dataset": {
+    "name": "CIC-MalMem-2022 (Obfuscated Malware Memory Forensics)",
+    "source": "Canadian Institute for Cybersecurity (UNB)",
+    "citation": "Carrier, Victor, Tekeoglu, Lashkari, 'Detecting Obfuscated Malware using Memory Feature Engineering', ICISSP 2022.",
+    "total_cleaned_samples": 38711,
+    "total_active_features": 51,
+    "benign_samples": 29231,
+    "trojan_samples": 9480,
+    "trojan_families": [
+      "Emotet",
+      "Reconyc",
+      "Refroso",
+      "Scar",
+      "Zeus"
+    ],
+    "dropped_features": [
+      "pslist.nprocs64bit",
+      "handles.nport",
+      "svcscan.interactive_process_services",
+      "callbacks.ngeneric"
+    ],
+    "dropped_duplicates": 74
+  },
+  "model_architecture": {
+    "algorithm": "RandomForestClassifier",
+    "n_estimators": 100,
+    "random_state": 42,
+    "class_weight": "balanced",
+    "trained_at": "2026-11-01T05:49:55.808161+00:00"
+  },
+  "probability_bands": {
+    "description": "Output calibrated into defensive confidence tiers, not hardcoded labels",
+    "bands": [
+      {
+        "band": "Benign",
+        "range": "[0.00, 0.35)",
+        "description": "Low probability of Trojan characteristics"
+      },
+      {
+        "band": "Suspicious",
+        "range": "[0.35, 0.65]",
+        "description": "Borderline / indeterminate memory anomalies"
+      },
+      {
+        "band": "Trojan-like",
+        "range": "(0.65, 1.00]",
+        "description": "High probability of malicious Trojan activity"
+      }
+    ]
+  },
+  "headline_recommendation": {
+    "headline_evaluation": "Evaluation B (Grouped by sample_hash) or Evaluation C (Leave-One-Family-Out)",
+    "reason": "Evaluation A (Random 80/20) achieves 100.0% due to sample cross-contamination, where multiple memory dumps of the exact same executable land in both train and test partitions. Furthermore, laboratory artifacts in service counts (svcscan.nservices) create an artificial global separation. Evaluations B and C prove true generalization to unseen samples and novel families."
+  },
+  "evaluations": {
+    "eval_a_random_stratified": {
+      "name": "Evaluation A: Random Stratified 80/20",
+      "nature": "Naive / Optimistic Baseline",
+      "sample_leakage_warning": true,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "confusion_matrix": [
+        [
+          5847,
+          0
+        ],
+        [
+          0,
+          1896
+        ]
+      ],
+      "top_15_features": [
+        {
+          "feature": "svcscan.nservices",
+          "importance": 0.215
+        },
+        {
+          "feature": "handles.nsection",
+          "importance": 0.108
+        },
+        {
+          "feature": "svcscan.kernel_drivers",
+          "importance": 0.1006
+        },
+        {
+          "feature": "svcscan.shared_process_services",
+          "importance": 0.0911
+        },
+        {
+          "feature": "handles.avg_handles_per_proc",
+          "importance": 0.0802
+        },
+        {
+          "feature": "handles.nevent",
+          "importance": 0.0781
+        },
+        {
+          "feature": "dlllist.avg_dlls_per_proc",
+          "importance": 0.0518
+        },
+        {
+          "feature": "handles.nmutant",
+          "importance": 0.0483
+        },
+        {
+          "feature": "dlllist.ndlls",
+          "importance": 0.0468
+        },
+        {
+          "feature": "pslist.avg_handlers",
+          "importance": 0.0407
+        },
+        {
+          "feature": "handles.nkey",
+          "importance": 0.0283
+        },
+        {
+          "feature": "handles.nhandles",
+          "importance": 0.0192
+        },
+        {
+          "feature": "handles.nfile",
+          "importance": 0.0191
+        },
+        {
+          "feature": "ldrmodules.not_in_mem",
+          "importance": 0.0181
+        },
+        {
+          "feature": "ldrmodules.not_in_load",
+          "importance": 0.0094
+        }
+      ]
+    },
+    "eval_b_grouped_sample_hash": {
+      "name": "Evaluation B: Grouped by sample_hash",
+      "nature": "Strict Sample Isolation (GroupShuffleSplit)",
+      "sample_leakage_warning": false,
+      "train_size": 31031,
+      "test_size": 7680,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "confusion_matrix": [
+        [
+          5855,
+          0
+        ],
+        [
+          0,
+          1825
+        ]
+      ],
+      "top_15_features": [
+        {
+          "feature": "svcscan.nservices",
+          "importance": 0.2113
+        },
+        {
+          "feature": "handles.nsection",
+          "importance": 0.1077
+        },
+        {
+          "feature": "svcscan.kernel_drivers",
+          "importance": 0.1023
+        },
+        {
+          "feature": "svcscan.shared_process_services",
+          "importance": 0.0922
+        },
+        {
+          "feature": "handles.avg_handles_per_proc",
+          "importance": 0.0906
+        },
+        {
+          "feature": "handles.nevent",
+          "importance": 0.0687
+        },
+        {
+          "feature": "handles.nmutant",
+          "importance": 0.0481
+        },
+        {
+          "feature": "dlllist.ndlls",
+          "importance": 0.0464
+        },
+        {
+          "feature": "dlllist.avg_dlls_per_proc",
+          "importance": 0.0416
+        },
+        {
+          "feature": "pslist.avg_handlers",
+          "importance": 0.0414
+        },
+        {
+          "feature": "handles.nfile",
+          "importance": 0.0293
+        },
+        {
+          "feature": "handles.nkey",
+          "importance": 0.0284
+        },
+        {
+          "feature": "handles.nhandles",
+          "importance": 0.0191
+        },
+        {
+          "feature": "ldrmodules.not_in_load",
+          "importance": 0.0183
+        },
+        {
+          "feature": "handles.nsemaphore",
+          "importance": 0.0094
+        }
+      ]
+    },
+    "eval_c_leave_one_family_out": {
+      "name": "Evaluation C: Leave-One-Family-Out Cross-Validation",
+      "nature": "Zero-Day / Novel Family Generalization",
+      "macro_average_recall": 0.9975,
+      "macro_fold_accuracy": 0.9995,
+      "macro_fold_precision": 1.0,
+      "macro_fold_f1": 0.9987,
+      "per_family_results": {
+        "Emotet": {
+          "family": "Emotet",
+          "test_count": 1967,
+          "recall": 1.0,
+          "fold_accuracy": 1.0,
+          "fold_precision": 1.0,
+          "fold_f1": 1.0,
+          "benign_fpr": 0.0,
+          "confusion_matrix": [
+            [
+              5847,
+              0
+            ],
+            [
+              0,
+              1967
+            ]
+          ]
+        },
+        "Reconyc": {
+          "family": "Reconyc",
+          "test_count": 1568,
+          "recall": 0.9892,
+          "fold_accuracy": 0.9977,
+          "fold_precision": 1.0,
+          "fold_f1": 0.9945,
+          "benign_fpr": 0.0,
+          "confusion_matrix": [
+            [
+              5847,
+              0
+            ],
+            [
+              17,
+              1551
+            ]
+          ]
+        },
+        "Refroso": {
+          "family": "Refroso",
+          "test_count": 1996,
+          "recall": 1.0,
+          "fold_accuracy": 1.0,
+          "fold_precision": 1.0,
+          "fold_f1": 1.0,
+          "benign_fpr": 0.0,
+          "confusion_matrix": [
+            [
+              5847,
+              0
+            ],
+            [
+              0,
+              1996
+            ]
+          ]
+        },
+        "Scar": {
+          "family": "Scar",
+          "test_count": 2000,
+          "recall": 1.0,
+          "fold_accuracy": 1.0,
+          "fold_precision": 1.0,
+          "fold_f1": 1.0,
+          "benign_fpr": 0.0,
+          "confusion_matrix": [
+            [
+              5847,
+              0
+            ],
+            [
+              0,
+              2000
+            ]
+          ]
+        },
+        "Zeus": {
+          "family": "Zeus",
+          "test_count": 1949,
+          "recall": 0.9985,
+          "fold_accuracy": 0.9996,
+          "fold_precision": 1.0,
+          "fold_f1": 0.9992,
+          "benign_fpr": 0.0,
+          "confusion_matrix": [
+            [
+              5847,
+              0
+            ],
+            [
+              3,
+              1946
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

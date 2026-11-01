@@ -38,6 +38,7 @@ ml/real/*.pkl
 ml/data/raw/*.csv
 ml/data/raw/*.parquet
 ml/data/raw/*.zip
+ml/real/*.csv
 
 # Node
 node_modules/

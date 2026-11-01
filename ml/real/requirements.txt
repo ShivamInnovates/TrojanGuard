@@ -1,0 +1,14 @@
+# TrojanGuard ml/real dependencies (CIC-MalMem-2022 real data pipeline)
+# Python: 3.12.15 (via uv)
+# Strictly offline / local training and inference
+
+numpy==2.2.5
+pandas==2.2.3
+scikit-learn==1.6.1
+scipy==1.18.1
+joblib==1.4.2
+threadpoolctl==3.7.0
+python-dateutil==3.0.0
+pytz==2026.5
+tzdata==2026.5
+six==1.17.0

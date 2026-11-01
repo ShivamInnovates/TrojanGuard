@@ -115,5 +115,6 @@ app.include_router(threats_router, prefix="/api")
 app.include_router(iocs_router, prefix="/api")
 app.include_router(demo_router, prefix="/api")
 
-# Phase 5b (model_router mounted in Phase 5b):
-# from app.api.model import router as model_router
+# Phase 5b: Real-data model router
+from app.api.model import router as model_router  # noqa: E402
+app.include_router(model_router, prefix="/api")

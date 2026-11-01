@@ -1,0 +1,29 @@
+{
+  "dataset_name": "CIC-MalMem-2022 (Obfuscated Malware Memory Dataset)",
+  "csv_filename": "Obfuscated-MalMem2022.csv",
+  "csv_sha256": "624ecb6c9229cf62bd3b8f65d23a2b132760e6bada458aa46eee134a313840c4",
+  "total_raw_rows": 58596,
+  "total_raw_columns": 57,
+  "filtered_rows_before_dedup": 38785,
+  "dropped_duplicates": 74,
+  "zero_variance_columns": [
+    "pslist.nprocs64bit",
+    "handles.nport",
+    "svcscan.interactive_process_services",
+    "callbacks.ngeneric"
+  ],
+  "total_active_features": 51,
+  "final_clean_rows": 38711,
+  "class_balance": {
+    "Benign": 29231,
+    "Trojan": 9480
+  },
+  "trojan_family_distribution": {
+    "Scar": 2000,
+    "Refroso": 1996,
+    "Emotet": 1967,
+    "Zeus": 1949,
+    "Reconyc": 1568
+  },
+  "unique_trojan_hashes": 957
+}
