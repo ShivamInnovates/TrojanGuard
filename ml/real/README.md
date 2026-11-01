@@ -38,24 +38,44 @@ Per project requirements, TrojanGuard filters this dataset to evaluate binary Tr
 
 ---
 
-## 4. Evaluation Strategy & Realistic Metrics
+## 4. Evaluation Strategy & Robustness Ablations
 
 Three distinct evaluation regimes are conducted to avoid academic over-claiming:
 
 ### Evaluation A: Random Stratified 80/20 Split (Naive / Optimistic)
-- Evaluates standard random train/test partitioning.
-- **Limitation**: Optimistic because multiple memory dumps of the same malware sample (different `run_id`s of the same `sample_hash`) land in both the training set and the test set.
+- Standard random train/test partitioning.
+- **Limitation**: Optimistic baseline because multiple memory dumps of the exact same executable (`sample_hash` across multiple `run_id`s) land in both the training set and the test set.
 
 ### Evaluation B: Grouped Split by Sample Hash (`GroupShuffleSplit`, seed 42)
-- Samples are grouped strictly by `sample_hash` for Trojans (each Benign sample gets an isolated group).
-- **No sample hash present in the training set ever appears in the test set**.
+- Evaluates model performance on **unseen samples from the same laboratory environment**.
+- Trojan samples are grouped strictly by `sample_hash` so that no Trojan sample hash in the training set ever appears in the test set.
 
-### Evaluation C: Leave-One-Family-Out (Cross-Family Generalization)
-- Cross-validation iterating across all 5 Trojan families: trains on 4 families + 80% Benign, and tests on the held-out 5th family + 20% Benign.
-- Measures whether the model detects **novel, previously unseen Trojan variants**.
+### Evaluation C: Leave-One-Family-Out Cross-Validation
+- Evaluates model performance on **unseen Trojan families from the same laboratory environment**.
+- Iterates across all 5 Trojan families: trains on 4 families + 80% Benign, and tests on the held-out 5th family + 20% Benign.
 
-### Critical Finding: Why Headline Metrics Should Be B or C (and why scores >99% occur)
-In laboratory memory dumps, clean VM snapshots typically run a uniform set of background OS services (`svcscan.nservices` ~ 395), whereas infected VMs show systematic alterations (`svcscan.nservices` ~ 389). Because of this global environment artifact, random stratified splits achieve near 100% accuracy. The **honest evaluation** must cite **Evaluation B (Grouped by Sample)** or **Evaluation C (Leave-One-Family-Out)** to demonstrate real generalization beyond sample replay.
+### Critical Academic Finding: Lab Environment Artifacts vs. Real-World Generalization
+Evaluations B and C must be accurately characterized as **evaluations on unseen samples and novel families within the same laboratory environment**, NOT as proof of real-world generalization to arbitrary wild machines:
+1. **Benign Data Limitation**: Benign rows in CIC-MalMem-2022 do NOT possess sample, process, or session IDs. Therefore, benign rows cannot be grouped, and **benign data leakage across train and test partitions cannot be ruled out**.
+2. **Laboratory Environment Fingerprint (`svcscan.nservices`)**:
+   In clean testbed VMs, Windows service counts are remarkably uniform around 395, whereas malware-executing VMs experience systematic service disruptions:
+   - **Benign ($n=29,231$)**: Mean = `394.205433`, Median = `395.0`, Std = `1.352629`
+   - **Trojan ($n=9,480$)**: Mean = `388.752743`, Median = `389.0`, Std = `1.459964`
+   The Random Forest assigned `21.29%` Gini importance to `svcscan.nservices` alone.
+
+### Robustness Ablation Study
+To verify whether the model is merely memorizing the `svcscan` service count artifact, we ablated the features and re-evaluated:
+- **Baseline (Full 51 Features)**:
+  - Eval B: Accuracy = `100.0%`, Recall = `100.0%`, F1 = `100.0%`
+  - Eval C: Macro Recall = `99.75%`, Macro F1 = `99.88%`, Benign FPR = `0.00%`
+- **Ablation 1: Removing all 6 `svcscan.*` Features (45 predictors remaining)**:
+  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%` (only 5 Trojan test samples missed)
+  - Eval C: Macro Recall = `99.52%`, Macro F1 = `99.76%`, Benign FPR = `0.00%` (Reconyc recall: `98.28%`, Zeus: `99.49%`, Scar: `99.85%`, Emotet: `100.0%`, Refroso: `100.0%`)
+- **Ablation 2: Removing Top-5 Most Important Features (46 predictors remaining)**:
+  - Eval B: Accuracy = `99.93%`, Recall = `99.73%`, F1 = `99.86%`
+  - Eval C: Macro Recall = `99.69%`, Macro F1 = `99.85%`, Benign FPR = `0.00%`
+
+*Conclusion*: Even when `svcscan.*` is entirely removed, the model still detects unseen Trojan families at **99.52% macro recall** within this lab environment, substituting other memory anomalies (e.g., `handles.nsection`, `malfind.ninjections`, `dlllist.ndlls`). However, because benign baseline leakage cannot be prevented without benign session identifiers, this high performance reflects intra-dataset consistency, not bulletproof wild deployment.
 
 ---
 

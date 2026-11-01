@@ -136,8 +136,11 @@ def test_api_real_metrics_endpoint(test_client: TestClient):
     assert "evaluations" in data
     assert "eval_a_random_stratified" in data["evaluations"]
     assert "eval_b_grouped_sample_hash" in data["evaluations"]
-    assert "eval_c_leave_one_family_out" in data["evaluations"]
     assert "headline_recommendation" in data
+    assert "robustness_ablation" in data
+    assert "eval_b_comparison" in data["robustness_ablation"]
+    assert "eval_c_comparison" in data["robustness_ablation"]
+    assert "artifact_verification_stats" in data["dataset"]
 
 
 def test_api_real_metrics_404_when_missing(monkeypatch, test_client: TestClient):

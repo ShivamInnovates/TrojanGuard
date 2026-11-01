@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Send,
   FileSpreadsheet,
+  Scale,
+  ShieldAlert,
 } from 'lucide-react'
 
 import { getRealModelMetrics, predictRealModel } from '../services/api'
@@ -201,7 +203,14 @@ export default function ModelEvaluation() {
     )
   }
 
-  const { dataset, model_architecture, headline_recommendation, evaluations } = metricsData
+  const {
+    dataset,
+    model_architecture,
+    headline_recommendation,
+    evaluations,
+    robustness_ablation,
+    generalization_disclaimer,
+  } = metricsData
   const evalA = evaluations.eval_a_random_stratified
   const evalB = evaluations.eval_b_grouped_sample_hash
   const evalC = evaluations.eval_c_leave_one_family_out
@@ -221,11 +230,11 @@ export default function ModelEvaluation() {
           <div className="flex items-center gap-2">
             <Cpu size={20} className="text-[var(--color-accent)]" />
             <h1 className="text-base font-bold font-mono text-[var(--color-text-primary)]">
-              Real-World Model Evaluation & Forensics Architecture
+              Real-Data Model Evaluation & Forensics Architecture
             </h1>
           </div>
           <p className="text-xs text-[var(--color-text-secondary)] mt-1 max-w-2xl">
-            Trained on the <strong>CIC-MalMem-2022</strong> memory forensics dataset. Multi-regime honest evaluation distinguishing intrinsic malware patterns from VM laboratory artifacts.
+            Trained on the <strong>CIC-MalMem-2022</strong> memory forensics dataset. Multi-regime honest evaluation measuring performance on unseen samples and novel families within the same laboratory environment (not real-world generalization; benign rows lack sample IDs, so benign data leakage cannot be ruled out).
           </p>
         </div>
 
@@ -329,7 +338,7 @@ export default function ModelEvaluation() {
                 : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)]'
             }`}
           >
-            Eval B: Grouped by Sample (Headline)
+            Eval B: Grouped by Sample (Unseen Samples in Lab)
           </button>
           <button
             onClick={() => setActiveTab('eval_c')}
@@ -339,7 +348,7 @@ export default function ModelEvaluation() {
                 : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)]'
             }`}
           >
-            Eval C: Leave-One-Family-Out (Zero-Day)
+            Eval C: Leave-One-Family-Out (Novel Families in Lab)
           </button>
           <button
             onClick={() => setActiveTab('eval_a')}
@@ -359,7 +368,7 @@ export default function ModelEvaluation() {
             <StatCard
               title="Accuracy"
               value={`${(currentEval.accuracy * 100).toFixed(1)}%`}
-              subtitle={currentEval.sample_leakage_warning ? 'Optimistic baseline' : 'Isolated samples'}
+              subtitle={currentEval.sample_leakage_warning ? 'Optimistic baseline' : 'Unseen samples (same lab)'}
               accentColor="var(--color-accent)"
             />
             <StatCard
@@ -386,7 +395,7 @@ export default function ModelEvaluation() {
             <StatCard
               title="Macro Recall"
               value={`${(evalC.macro_average_recall * 100).toFixed(2)}%`}
-              subtitle="Across all 5 held-out families"
+              subtitle="Across 5 novel families (same lab)"
               accentColor="var(--color-risk-critical)"
             />
             <StatCard
@@ -404,7 +413,7 @@ export default function ModelEvaluation() {
             <StatCard
               title="Macro F1"
               value={`${(evalC.macro_fold_f1 * 100).toFixed(2)}%`}
-              subtitle="Zero-day generalization"
+              subtitle="Novel family test (same lab)"
               accentColor="var(--color-risk-medium)"
             />
           </div>
@@ -425,10 +434,10 @@ export default function ModelEvaluation() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase text-[var(--color-text-primary)]">
               <FlaskConical size={16} className="text-[var(--color-accent)]" />
-              <span>Leave-One-Family-Out Generalization Results</span>
+              <span>Leave-One-Family-Out Cross-Validation (Same Lab Environment)</span>
             </div>
             <span className="text-xs font-mono text-[var(--color-text-muted)]">
-              5 Folds (Trained on 4 families + 80% Benign, Tested on held-out)
+              5 Folds (Trained on 4 families + 80% Benign, Tested on held-out; benign rows lack sample IDs)
             </span>
           </div>
 
@@ -566,6 +575,213 @@ export default function ModelEvaluation() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Robustness Check (Feature Removal Ablation Study) */}
+      {robustness_ablation && (
+        <div
+          className="p-5 rounded-lg border space-y-4"
+          style={{
+            backgroundColor: 'var(--color-surface-1)',
+            borderColor: 'var(--color-border)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <div
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3"
+            style={{ borderColor: 'var(--color-border-subtle)' }}
+          >
+            <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase text-[var(--color-text-primary)]">
+              <Scale size={16} className="text-[var(--color-accent)]" />
+              <span>Robustness Check: Feature Removal Ablations & Lab Bounds</span>
+            </div>
+            <span
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--color-accent)] self-start sm:self-auto"
+              style={{ backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border-subtle)' }}
+            >
+              Intra-Lab Robustness
+            </span>
+          </div>
+
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            To test whether classification depends on specific laboratory testbed artifacts (such as static OS service counts), Evaluations B and C were re-run under two feature ablation conditions: (1) removing <strong>all 6 <code>svcscan.*</code> features</strong>, and (2) removing the <strong>top-5 features by importance</strong>. Both evaluations measure performance on unseen samples/families <strong>within the same lab environment</strong>; because benign rows lack sample IDs, benign data leakage cannot be ruled out.
+          </p>
+
+          {/* svcscan.nservices artifact verification */}
+          {dataset.artifact_verification_stats && (
+            <div
+              className="p-3.5 rounded border text-xs font-sans space-y-2"
+              style={{
+                backgroundColor: 'rgba(234, 179, 8, 0.05)',
+                borderColor: 'rgba(234, 179, 8, 0.3)',
+              }}
+            >
+              <div className="flex items-center gap-2 font-mono text-xs font-bold text-[var(--color-risk-medium)]">
+                <AlertTriangle size={14} />
+                <span>Cleaned Data Artifact Verification ({dataset.artifact_verification_stats.feature})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                <div className="p-2.5 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] space-y-1">
+                  <div className="text-[10px] text-[var(--color-text-muted)] uppercase">
+                    Benign (n={dataset.artifact_verification_stats.stats.benign.count.toLocaleString()}):
+                  </div>
+                  <div className="text-[var(--color-text-primary)]">
+                    Mean: <span className="font-bold text-[var(--color-risk-low)]">{dataset.artifact_verification_stats.stats.benign.mean.toFixed(2)}</span> | Median: <span className="font-bold">{dataset.artifact_verification_stats.stats.benign.median.toFixed(1)}</span> | Std: <span className="font-bold">{dataset.artifact_verification_stats.stats.benign.std.toFixed(4)}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] space-y-1">
+                  <div className="text-[10px] text-[var(--color-text-muted)] uppercase">
+                    Trojan (n={dataset.artifact_verification_stats.stats.trojan.count.toLocaleString()}):
+                  </div>
+                  <div className="text-[var(--color-text-primary)]">
+                    Mean: <span className="font-bold text-[var(--color-risk-critical)]">{dataset.artifact_verification_stats.stats.trojan.mean.toFixed(2)}</span> | Median: <span className="font-bold">{dataset.artifact_verification_stats.stats.trojan.median.toFixed(1)}</span> | Std: <span className="font-bold">{dataset.artifact_verification_stats.stats.trojan.std.toFixed(4)}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
+                The persistent ~5.5-service delta with tight standard deviation (~1.4) represents a laboratory virtual machine baseline artifact distinguishing benign capture runs from malware capture runs.
+              </p>
+            </div>
+          )}
+
+          {/* Ablation Table 1: Evaluation B */}
+          <div className="space-y-2 pt-1">
+            <div className="text-xs font-mono font-bold text-[var(--color-text-primary)] flex items-center justify-between">
+              <span>Evaluation B Ablation (Grouped by Sample Hash — Unseen Samples)</span>
+              <span className="text-[10px] font-normal text-[var(--color-text-muted)]">Test: 1,896 Trojan, 5,847 Benign</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans border-collapse">
+                <thead>
+                  <tr
+                    className="border-b text-[var(--color-text-muted)] font-mono text-[11px] uppercase tracking-wider"
+                    style={{ borderColor: 'var(--color-border-subtle)' }}
+                  >
+                    <th className="py-2 px-3">Condition</th>
+                    <th className="py-2 px-3">Features</th>
+                    <th className="py-2 px-3">Accuracy</th>
+                    <th className="py-2 px-3">Precision</th>
+                    <th className="py-2 px-3">Recall</th>
+                    <th className="py-2 px-3">F1 Score</th>
+                    <th className="py-2 px-3">Missed Trojans</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y font-mono" style={{ borderColor: 'var(--color-border-subtle)' }}>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">Full Active Feature Set</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_b_comparison.full_features.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.full_features.accuracy * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.full_features.precision * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.full_features.recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.full_features.f1_score * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">0 / 1,896</td>
+                  </tr>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">All svcscan.* Removed</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_b_comparison.no_svcscan.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_svcscan.accuracy * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.no_svcscan.precision * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.no_svcscan.recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_svcscan.f1_score * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">5 / 1,896</td>
+                  </tr>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">Top-5 Features Removed</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_b_comparison.no_top5.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_top5.accuracy * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_b_comparison.no_top5.precision * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_b_comparison.no_top5.recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-text-primary)]">{(robustness_ablation.eval_b_comparison.no_top5.f1_score * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-medium)]">5 / 1,896</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Ablation Table 2: Evaluation C */}
+          <div className="space-y-2 pt-1">
+            <div className="text-xs font-mono font-bold text-[var(--color-text-primary)] flex items-center justify-between">
+              <span>Evaluation C Ablation (Leave-One-Family-Out — Novel Families in Lab)</span>
+              <span className="text-[10px] font-normal text-[var(--color-text-muted)]">5 Folds (Emotet, Reconyc, Refroso, Scar, Zeus)</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans border-collapse">
+                <thead>
+                  <tr
+                    className="border-b text-[var(--color-text-muted)] font-mono text-[11px] uppercase tracking-wider"
+                    style={{ borderColor: 'var(--color-border-subtle)' }}
+                  >
+                    <th className="py-2 px-3">Condition</th>
+                    <th className="py-2 px-3">Feats</th>
+                    <th className="py-2 px-3">Macro Recall</th>
+                    <th className="py-2 px-3">Macro F1</th>
+                    <th className="py-2 px-3">Benign FPR</th>
+                    <th className="py-2 px-3">Emotet</th>
+                    <th className="py-2 px-3">Reconyc</th>
+                    <th className="py-2 px-3">Refroso</th>
+                    <th className="py-2 px-3">Scar</th>
+                    <th className="py-2 px-3">Zeus</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y font-mono" style={{ borderColor: 'var(--color-border-subtle)' }}>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">Full Features</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_c_comparison.full_features.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_c_comparison.full_features.macro_recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_c_comparison.full_features.macro_f1 * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_c_comparison.full_features.benign_fpr * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.full_features.per_family_recall.Emotet * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.full_features.per_family_recall.Reconyc * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.full_features.per_family_recall.Refroso * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.full_features.per_family_recall.Scar * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.full_features.per_family_recall.Zeus * 100).toFixed(1)}%</td>
+                  </tr>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">No svcscan.*</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_c_comparison.no_svcscan.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_c_comparison.no_svcscan.macro_recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_c_comparison.no_svcscan.macro_f1 * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_c_comparison.no_svcscan.benign_fpr * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_svcscan.per_family_recall.Emotet * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_svcscan.per_family_recall.Reconyc * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_svcscan.per_family_recall.Refroso * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_svcscan.per_family_recall.Scar * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_svcscan.per_family_recall.Zeus * 100).toFixed(1)}%</td>
+                  </tr>
+                  <tr className="hover:bg-[var(--color-surface-2)]">
+                    <td className="py-2 px-3 font-semibold text-[var(--color-text-primary)]">No Top-5</td>
+                    <td className="py-2 px-3 text-[var(--color-accent)]">{robustness_ablation.eval_c_comparison.no_top5.features_count}</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-risk-critical)]">{(robustness_ablation.eval_c_comparison.no_top5.macro_recall * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 font-bold text-[var(--color-text-primary)]">{(robustness_ablation.eval_c_comparison.no_top5.macro_f1 * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3 text-[var(--color-risk-low)]">{(robustness_ablation.eval_c_comparison.no_top5.benign_fpr * 100).toFixed(2)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_top5.per_family_recall.Emotet * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_top5.per_family_recall.Reconyc * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_top5.per_family_recall.Refroso * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_top5.per_family_recall.Scar * 100).toFixed(1)}%</td>
+                    <td className="py-2 px-3">{(robustness_ablation.eval_c_comparison.no_top5.per_family_recall.Zeus * 100).toFixed(1)}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Key Academic Takeaway */}
+          <div
+            className="p-3.5 rounded border text-xs font-sans space-y-1"
+            style={{
+              backgroundColor: 'var(--color-bg-base)',
+              borderColor: 'var(--color-border-subtle)',
+            }}
+          >
+            <div className="font-mono font-bold text-[var(--color-accent)] text-[11px] uppercase tracking-wider">
+              Academic Viva Takeaway & Limitations
+            </div>
+            <p className="text-[var(--color-text-secondary)] leading-relaxed">
+              When <code>svcscan.*</code> or the top-5 features are ablated, recall drops by only ~0.23% (from 100.0% to 99.73% on Eval B; 99.75% to 99.52% on Eval C) because decision trees substitute other correlated lab-environment features (such as <code>handles.nsection</code>, <code>malfind.ninjections</code>, and <code>dlllist.ndlls</code>). Crucially, because benign memory dumps contain no sample IDs, cross-fold benign leakage cannot be ruled out. Therefore, these metrics demonstrate robustness <em>within this VM testbed</em>, NOT proof of generalizability to arbitrary wild enterprise endpoints.
+            </p>
           </div>
         </div>
       )}

@@ -362,6 +362,55 @@ Verification Summary:
 
 ---
 
+## Phase 5b — Real-Data Model (CIC-MalMem-2022) & Robustness Ablations
+
+**Goal:** Implement real-world memory forensics model on CIC-MalMem-2022 dataset with multi-regime honest evaluations and robustness ablation studies.
+
+Files created / modified:
+```
+ml/real/README.md             (dataset citation, extraction boundaries, lab disclaimer)
+ml/real/prepare.py            (cleaning, parsing, category breakdown, deduplication)
+ml/real/train_real.py         (Evaluation A/B/C + Robustness Ablations 1 & 2)
+ml/real/metrics_real.json     (persisted evaluations, verification stats, ablations)
+ml/real/feature_names_real.json (51 active Volatility memory features)
+backend/app/ml/real_predictor.py (backend inference loader & probability band calibration)
+backend/app/api/model.py      (GET /api/model/real/metrics, POST /api/model/real/predict)
+frontend/src/pages/ModelEvaluation.jsx (Robustness check section, side-by-side tables)
+tests/test_real_model.py      (8 unit & API tests for real-data pipeline)
+```
+
+- **Dataset Preparation (`ml/real/prepare.py`)**:
+  - Source: UNB CIC-MalMem-2022 (`Obfuscated-MalMem2022.csv`, SHA-256: `3dfbc8e8...`).
+  - Total cleaned rows: 38,711 (29,231 Benign, 9,480 Trojan across 5 families: Emotet, Reconyc, Refroso, Scar, Zeus).
+  - Cleaned 74 exact duplicate rows. Dropped 4 zero-variance columns (`pslist.nprocs64bit`, `handles.nport`, `svcscan.interactive_process_services`, `callbacks.ngeneric`), leaving 51 active features.
+  - Parsed Trojan categories into `(malware_type, family, sample_hash, run_id)`.
+- **Training & Multi-Regime Evaluations (`ml/real/train_real.py`)**:
+  - Evaluation A (Random Stratified 80/20): Naive / optimistic baseline (100% accuracy, leakage warning documented).
+  - Evaluation B (Grouped by `sample_hash` via GroupShuffleSplit, seed 42): Isolates Trojan sample hashes across folds. 100% Trojan Recall.
+  - Evaluation C (Leave-One-Family-Out Cross-Validation, 5 folds): Trains on 4 families + 80% Benign, tests on held-out family + 20% Benign. Macro Recall: 99.75%, Macro F1: 99.88%, Benign FPR: 0.0%.
+- **Robustness Ablation Study**:
+  - `svcscan.nservices` Artifact Verification:
+    - Benign ($n=29,231$): Mean = 394.205433, Median = 395.0, Std = 1.352629
+    - Trojan ($n=9,480$): Mean = 388.752743, Median = 389.0, Std = 1.459964
+    - Persistent ~5.5-service delta identified as a laboratory virtual machine baseline artifact.
+  - Ablation 1 (All 6 `svcscan.*` features removed, 45 features remaining):
+    - Eval B: Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86% (only 5 Trojan test samples missed out of 1,896)
+    - Eval C: Macro Recall 99.52%, Macro F1 99.76%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.28%, Refroso: 100%, Scar: 99.85%, Zeus: 99.49%)
+  - Ablation 2 (Top-5 features by importance removed, 46 features remaining: `svcscan.nservices`, `handles.nsection`, `svcscan.kernel_drivers`, `svcscan.shared_process_services`, `handles.avg_handles_per_proc`):
+    - Eval B: Accuracy 99.93%, Precision 100.0%, Recall 99.73%, F1 99.86%
+    - Eval C: Macro Recall 99.69%, Macro F1 99.85%, Benign FPR 0.0% (Emotet: 100%, Reconyc: 98.98%, Refroso: 100%, Scar: 100%, Zeus: 99.49%)
+- **Honest Academic Evaluation Characterization**:
+  - Wording in `ml/real/README.md` and `/model` explicitly states that Evaluations B and C evaluate performance on unseen samples/families from the same laboratory environment, NOT proof of real-world generalization.
+  - States clearly that benign rows have no sample IDs, so cross-fold benign leakage cannot be ruled out.
+  - Added dedicated "Robustness check" section with side-by-side comparison tables and `svcscan.nservices` figures on `/model`.
+- **Inference & UI**:
+  - Probability band mapping: Benign [0.00, 0.35), Suspicious [0.35, 0.65], Trojan-like (0.65, 1.00].
+  - Interactive prediction tester on `/model` accepts JSON feature vectors and CSV uploads.
+  - Script-relative paths (`Path(__file__).resolve().parent`) ensure artifacts land strictly in `ml/real/` regardless of invocation CWD.
+  - All 57 backend tests passing. `npm run build` succeeds cleanly. Git status clean.
+
+---
+
 ## Phase 7 — Integration, Tests & Bug Fixes
 
 **Goal:** End-to-end verification; all 15 acceptance criteria tested.

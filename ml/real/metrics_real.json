@@ -20,14 +20,31 @@
       "svcscan.interactive_process_services",
       "callbacks.ngeneric"
     ],
-    "dropped_duplicates": 74
+    "dropped_duplicates": 74,
+    "artifact_verification_stats": {
+      "feature": "svcscan.nservices",
+      "stats": {
+        "benign": {
+          "count": 29231,
+          "mean": 394.205433,
+          "median": 395.0,
+          "std": 1.352629
+        },
+        "trojan": {
+          "count": 9480,
+          "mean": 388.752743,
+          "median": 389.0,
+          "std": 1.459964
+        }
+      }
+    }
   },
   "model_architecture": {
     "algorithm": "RandomForestClassifier",
     "n_estimators": 100,
     "random_state": 42,
     "class_weight": "balanced",
-    "trained_at": "2026-11-01T05:49:55.808161+00:00"
+    "trained_at": "2026-11-01T06:15:38.002988+00:00"
   },
   "probability_bands": {
     "description": "Output calibrated into defensive confidence tiers, not hardcoded labels",
@@ -49,9 +66,18 @@
       }
     ]
   },
+  "generalization_disclaimer": {
+    "characterization": "Evaluation on unseen samples and families from the same laboratory environment",
+    "critical_limitations": [
+      "Evaluations B and C measure generalization to unseen samples/families within the exact same lab testbed, NOT proof of real-world generalization to arbitrary wild endpoints.",
+      "Benign samples in CIC-MalMem-2022 have no sample or session IDs, so benign data leakage between folds cannot be ruled out.",
+      "Global laboratory testbed artifacts (such as svcscan.nservices averaging 394.2 in benign vs 388.7 in trojan) create artificial separation across the testbed.",
+      "Even when all svcscan.* features or top-5 features are ablated, decision trees leverage correlated memory anomalies (handles.nsection, malfind.ninjections, dlllist.ndlls) present in this testbed."
+    ]
+  },
   "headline_recommendation": {
-    "headline_evaluation": "Evaluation B (Grouped by sample_hash) or Evaluation C (Leave-One-Family-Out)",
-    "reason": "Evaluation A (Random 80/20) achieves 100.0% due to sample cross-contamination, where multiple memory dumps of the exact same executable land in both train and test partitions. Furthermore, laboratory artifacts in service counts (svcscan.nservices) create an artificial global separation. Evaluations B and C prove true generalization to unseen samples and novel families."
+    "headline_evaluation": "Evaluation B (Grouped by Sample Hash within Lab Environment): 100.0% Trojan Recall (99.73% when svcscan.* ablated)",
+    "reason": "Evaluation B isolates unique Trojan malware samples so no sample appears in both train and test. However, evaluations B and C evaluate performance on unseen samples/families from the same laboratory environment, not proof of real-world generalization; benign rows have no sample IDs, so benign data leakage cannot be ruled out."
   },
   "evaluations": {
     "eval_a_random_stratified": {
@@ -137,7 +163,7 @@
     },
     "eval_b_grouped_sample_hash": {
       "name": "Evaluation B: Grouped by sample_hash",
-      "nature": "Strict Sample Isolation (GroupShuffleSplit)",
+      "nature": "Evaluation on unseen samples from the same lab environment (GroupShuffleSplit)",
       "sample_leakage_warning": false,
       "train_size": 31031,
       "test_size": 7680,
@@ -220,11 +246,12 @@
     },
     "eval_c_leave_one_family_out": {
       "name": "Evaluation C: Leave-One-Family-Out Cross-Validation",
-      "nature": "Zero-Day / Novel Family Generalization",
+      "nature": "Evaluation on novel families from the same lab environment",
       "macro_average_recall": 0.9975,
       "macro_fold_accuracy": 0.9995,
       "macro_fold_precision": 1.0,
-      "macro_fold_f1": 0.9987,
+      "macro_fold_f1": 0.9988,
+      "macro_benign_fpr": 0.0,
       "per_family_results": {
         "Emotet": {
           "family": "Emotet",
@@ -320,6 +347,91 @@
               1946
             ]
           ]
+        }
+      }
+    }
+  },
+  "robustness_ablation": {
+    "description": "Comparison of Evaluation B and Evaluation C under feature removal",
+    "top_5_features_removed": [
+      "svcscan.nservices",
+      "handles.nsection",
+      "svcscan.kernel_drivers",
+      "svcscan.shared_process_services",
+      "handles.avg_handles_per_proc"
+    ],
+    "svcscan_features_removed": [
+      "svcscan.nservices",
+      "svcscan.kernel_drivers",
+      "svcscan.fs_drivers",
+      "svcscan.process_services",
+      "svcscan.shared_process_services",
+      "svcscan.nactive"
+    ],
+    "eval_b_comparison": {
+      "full_features": {
+        "features_count": 51,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      },
+      "no_svcscan": {
+        "features_count": 45,
+        "accuracy": 0.9993,
+        "precision": 1.0,
+        "recall": 0.9973,
+        "f1_score": 0.9986
+      },
+      "no_top5": {
+        "features_count": 46,
+        "accuracy": 0.9993,
+        "precision": 1.0,
+        "recall": 0.9973,
+        "f1_score": 0.9986
+      }
+    },
+    "eval_c_comparison": {
+      "full_features": {
+        "features_count": 51,
+        "macro_recall": 0.9975,
+        "macro_f1": 0.9988,
+        "macro_accuracy": 0.9995,
+        "benign_fpr": 0.0,
+        "per_family_recall": {
+          "Emotet": 1.0,
+          "Reconyc": 0.9892,
+          "Refroso": 1.0,
+          "Scar": 1.0,
+          "Zeus": 0.9985
+        }
+      },
+      "no_svcscan": {
+        "features_count": 45,
+        "macro_recall": 0.9952,
+        "macro_f1": 0.9976,
+        "macro_accuracy": 0.9989,
+        "benign_fpr": 0.0,
+        "per_family_recall": {
+          "Emotet": 1.0,
+          "Reconyc": 0.9828,
+          "Refroso": 1.0,
+          "Scar": 0.9985,
+          "Zeus": 0.9949
+        }
+      },
+      "no_top5": {
+        "features_count": 46,
+        "macro_recall": 0.9969,
+        "macro_f1": 0.9985,
+        "macro_accuracy": 0.9993,
+        "benign_fpr": 0.0,
+        "per_family_recall": {
+          "Emotet": 1.0,
+          "Reconyc": 0.9898,
+          "Refroso": 1.0,
+          "Scar": 1.0,
+          "Zeus": 0.9949
         }
       }
     }
