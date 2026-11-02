@@ -445,9 +445,23 @@ docs/PROGRESS.md           (acceptance checklist completed with verified evidenc
   - Trojan-like Activity: 20/20 Trojan-like, Risk Score: 92, Confidence: 99.7%
 - **Concurrent Polling**:
   - Two browser clients running separate scenarios simultaneously (`suspicious` and `trojan`) polled and completed concurrently without race conditions or shared state collisions.
-- **Model Page Verification**:
-  - Fully displays synthetic 9-feature model metadata alongside real CIC-MalMem-2022 Random Forest multi-regime evaluations (A, B, C) and both robustness ablations.
-  - Interactive feature inference verified with real-data vector, returning calibrated Trojan-like probability.
+- **Model Page Before Training Verification**:
+  - **PASS** (Tested live): Temporarily moved `ml/real/metrics_real.json` to `.bak`. Verified `GET /api/model/real/metrics` returns HTTP 404 with detail `"Real-data model metrics not available. Model training is pending (Phase 5b). Please run ml/real/train_real.py."`. Verified via browser subagent that `/model` renders the clean `"Model Training Pending (Phase 5b)"` empty state card displaying instructions (`ml/real/prepare.py`, `ml/real/train_real.py`) and an active `"Check Status Again"` button (captured in recording `model_pre_training_check` and artifact `model_training_pending`). Restored `metrics_real.json` cleanly.
+
+---
+
+## Phase 8 — Documentation, README & Viva Notes
+
+**Goal:** Author a complete, transparent, and academically honest documentation suite covering architecture, threat scoring, dual-ML models, viva preparation, and presentation scripts.
+
+Files created / rewritten:
+```
+README.md               (complete per spec §15 with data & model honesty, regeneration commands)
+docs/VIVA_NOTES.md      (12 spec Q&A + 6 deep-dive architectural & evaluation defense notes)
+docs/DEMO_SCRIPT.md     (4-5 minute live demonstration script with exact clicks and fallback)
+docs/ARCHITECTURE.md    (end-to-end data flow, tier diagram, and security boundaries)
+docs/PROGRESS.md        (updated with complete Phase 7 & 8 verification)
+```
 
 ---
 
@@ -468,5 +482,5 @@ docs/PROGRESS.md           (acceptance checklist completed with verified evidenc
 | 11 | ML training + inference demonstrated | **PASS** | Synthetic 9-feature RF trained (seed 42); real CIC-MalMem-2022 51-feature RF trained with evaluations A/B/C and ablations on `/model`. |
 | 12 | SHA-256 computed; file never executed | **PASS** | In-memory SHA-256 computation via `hashlib.sha256()`. Security audit verified 0 subprocess/exec/eval/pickle execution of uploads. |
 | 13 | Errors + empty states do not crash app | **PASS** | Tested empty database (0 records), backend-down connection errors, 413 oversized files, corrupt PEs, and invalid JSON vectors. |
-| 14 | README complete | **PASS** | Comprehensive documentation including architecture, installation, demo walkthrough, threat scoring model, and viva questions. |
+| 14 | README complete | **PASS** | Comprehensive documentation including architecture, installation, demo walkthrough, threat scoring model, viva questions, and honesty disclosures. |
 | 15 | No nonfunctional buttons / static placeholders | **PASS** | All navigation links, file dropzones, demo buttons, search inputs, pagination controls, and inference testers are functional. |
