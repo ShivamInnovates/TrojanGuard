@@ -9,6 +9,8 @@ import React from 'react'
  */
 export default function SeverityBadge({
   value,
+  source = null,
+  label = null,
   variant = 'auto', // 'level' | 'classification' | 'auto'
   size = 'md', // 'sm' | 'md' | 'lg'
   className = '',
@@ -20,7 +22,15 @@ export default function SeverityBadge({
   let colorVar = 'var(--color-text-secondary)'
   let bgVar = 'var(--color-surface-2)'
   let borderVar = 'var(--color-border)'
-  let label = value
+
+  let displayLabel = label
+  if (!displayLabel) {
+    if (source === 'upload' && norm === 'benign') {
+      displayLabel = 'No indicators found (limited static analysis)'
+    } else {
+      displayLabel = value
+    }
+  }
 
   if (norm === 'low' || norm === 'benign') {
     colorVar = 'var(--color-risk-low)'
@@ -48,7 +58,7 @@ export default function SeverityBadge({
 
   return (
     <span
-      className={`inline-flex items-center rounded font-mono font-medium tracking-wide uppercase transition-colors select-none ${sizeClasses} ${className}`}
+      className={`inline-flex items-center rounded font-mono font-medium tracking-wide uppercase transition-colors select-none text-left ${sizeClasses} ${className}`}
       style={{
         color: colorVar,
         backgroundColor: bgVar,
@@ -60,7 +70,7 @@ export default function SeverityBadge({
         style={{ backgroundColor: colorVar }}
         aria-hidden="true"
       />
-      <span>{label}</span>
+      <span>{displayLabel}</span>
     </span>
   )
 }

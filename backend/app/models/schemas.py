@@ -216,10 +216,12 @@ class HealthResponse(BaseModel):
     database_reachable: bool
     table_count: int
     model_status: str
-    model_version: str | None = None
+    model_version: str | None = None  # Model artifact version (e.g. '1.0.0')
+    sklearn_version: str | None = None  # Scikit-learn library version (e.g. '1.6.1')
     trained_on_synthetic: bool = True
     python_version: str
-    app_version: str
+    app_version: str  # Application version (e.g. '0.1.0')
+
 
 
 class ErrorResponse(BaseModel):

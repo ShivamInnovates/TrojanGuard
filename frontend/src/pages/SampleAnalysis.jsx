@@ -406,7 +406,7 @@ export default function SampleAnalysis() {
                 </h2>
               </div>
               <p className="text-xs text-[var(--color-text-secondary)]">
-                Sample analyzed safely in memory &bull; Classification: {result.classification}
+                Sample analyzed safely in memory &bull; Verdict: {result.classification === 'Benign' ? 'No indicators found (limited static analysis)' : result.classification}
               </p>
             </div>
 
@@ -490,7 +490,7 @@ export default function SampleAnalysis() {
               <span className="text-[11px] text-[var(--color-text-muted)] uppercase">Risk Score</span>
               <div className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                 <span>{result.risk_score} / 100</span>
-                <SeverityBadge value={result.classification} size="sm" />
+                <SeverityBadge value={result.classification} source={result.analysis_source || 'upload'} size="sm" />
               </div>
             </div>
           </div>

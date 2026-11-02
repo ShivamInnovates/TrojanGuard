@@ -33,7 +33,7 @@ async def get_model_real_metrics():
     Returns 404 if model training has not been executed yet.
     """
     metrics = real_predictor.get_real_metrics()
-    if metrics is None or not real_predictor.is_real_model_available():
+    if metrics is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Real-data model metrics not available. Model training is pending (Phase 5b). Please run ml/real/train_real.py.",

@@ -127,7 +127,7 @@ export default function AnalysisTable({
 
                     {/* Classification */}
                     <td className="py-3 px-4">
-                      <SeverityBadge value={item.classification} />
+                      <SeverityBadge value={item.classification} source={item.analysis_source} />
                     </td>
 
                     {/* Risk Level */}

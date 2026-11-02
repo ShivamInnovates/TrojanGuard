@@ -256,7 +256,7 @@ export default function AnalysisDetail() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <SeverityBadge value={report.classification} size="md" />
+            <SeverityBadge value={report.classification} source={report.analysis_source} size="md" />
             <SeverityBadge value={report.risk_level} size="md" />
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function AnalysisDetail() {
             label="Composite Risk Score"
           />
           <div className="mt-4 flex items-center gap-2">
-            <SeverityBadge value={report.classification} size="md" />
+            <SeverityBadge value={report.classification} source={report.analysis_source} size="md" />
             <SeverityBadge value={report.risk_level} size="md" />
           </div>
           <div className="mt-2 text-xs font-mono text-[var(--color-text-muted)]">
@@ -414,7 +414,10 @@ export default function AnalysisDetail() {
                   Decision Engine Result
                 </span>
                 <div className="font-mono font-semibold text-sm text-[var(--color-text-primary)]">
-                  {report.classification} ({report.risk_level} Risk)
+                  {report.analysis_source === 'upload' && report.classification === 'Benign'
+                    ? 'No indicators found (limited static analysis)'
+                    : report.classification}{' '}
+                  ({report.risk_level} Risk)
                 </div>
               </div>
             </div>

@@ -32,6 +32,7 @@ async def health_check():
 
     # 1. Model inspection
     model_version: str | None = None
+    sklearn_version: str | None = None
     trained_on_synthetic: bool = True
 
     if not MODEL_PATH.exists():
@@ -44,7 +45,10 @@ async def health_check():
                 import json
                 with open(meta_path, "r", encoding="utf-8") as f:
                     meta = json.load(f)
-                model_version = meta.get("sklearn_version")
+                sklearn_version = meta.get("sklearn_version")
+                model_version = meta.get("model_version", "1.0.0")
+            else:
+                model_version = "1.0.0"
             _ = joblib.load(MODEL_PATH)
             model_status = "loaded"
         except Exception as e:
@@ -77,6 +81,7 @@ async def health_check():
                 table_count=0,
                 model_status=model_status,
                 model_version=model_version,
+                sklearn_version=sklearn_version,
                 trained_on_synthetic=trained_on_synthetic,
                 python_version=python_ver,
                 app_version=app_ver,
@@ -89,6 +94,7 @@ async def health_check():
         table_count=table_count,
         model_status=model_status,
         model_version=model_version,
+        sklearn_version=sklearn_version,
         trained_on_synthetic=trained_on_synthetic,
         python_version=python_ver,
         app_version=app_ver,

@@ -22,6 +22,7 @@ from app.main import app
 from app.ml.real_predictor import (
     determine_probability_band,
     get_real_feature_names,
+    is_real_model_available,
     predict_real_features,
 )
 from ml.real.prepare import parse_category_string, prepare_dataset
@@ -97,6 +98,10 @@ def test_probability_band_mapping():
     assert band_max == "Trojan-like"
 
 
+@pytest.mark.skipif(
+    not is_real_model_available(),
+    reason="Real-data model_real.pkl not trained yet. Run ml/real/train_real.py to enable live real-model predictions.",
+)
 def test_predict_real_features_validation():
     """Verify feature vector validation rejects missing features or NaN/Inf."""
     expected_features = get_real_feature_names()
@@ -152,6 +157,10 @@ def test_api_real_metrics_404_when_missing(monkeypatch, test_client: TestClient)
     assert "not available" in resp.json()["detail"].lower()
 
 
+@pytest.mark.skipif(
+    not is_real_model_available(),
+    reason="Real-data model_real.pkl not trained yet. Run ml/real/train_real.py to enable live real-model predictions.",
+)
 def test_api_real_predict_json(test_client: TestClient):
     """Verify POST /api/model/real/predict with JSON payload."""
     features = {f: 1.0 for f in get_real_feature_names()}
@@ -169,6 +178,10 @@ def test_api_real_predict_json(test_client: TestClient):
     assert resp_bad.status_code == 422
 
 
+@pytest.mark.skipif(
+    not is_real_model_available(),
+    reason="Real-data model_real.pkl not trained yet. Run ml/real/train_real.py to enable live real-model predictions.",
+)
 def test_api_real_predict_csv_upload(test_client: TestClient):
     """Verify POST /api/model/real/predict with CSV file upload."""
     feature_names = get_real_feature_names()

@@ -1,5 +1,6 @@
 {
   "model_type": "RandomForestClassifier",
+  "model_version": "1.0.0",
   "random_state": 42,
   "sklearn_version": "1.6.1",
   "trained_at_utc": "2026-10-26T14:06:30.549464+00:00",

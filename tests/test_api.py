@@ -79,6 +79,33 @@ def test_static_only_upload_confidence_null_and_never_trojan(test_client: TestCl
     assert data["analysis"]["classification"] != "Trojan-like"
 
 
+def test_static_only_upload_benign_verdict_schema_preserved(test_client: TestClient):
+    """
+    Verify static-only clean upload preserves stored schema classification as 'Benign'
+    with confidence=None and source='upload', while the UI renders
+    'No indicators found (limited static analysis)'.
+    """
+    clean_bytes = b"Hello world, this is a clean document.\n"
+    file_payload = {"file": ("clean_doc.txt", io.BytesIO(clean_bytes), "text/plain")}
+    resp = test_client.post("/api/analyze", files=file_payload)
+    assert resp.status_code == 200
+    data = resp.json()["analysis"]
+    # Schema remains strictly 'Benign' in database and API
+    assert data["classification"] == "Benign"
+    assert data["analysis_source"] == "upload"
+    assert data["confidence"] is None
+    assert data["risk_score"] == 0
+    assert data["risk_level"] == "Low"
+
+    # Verify retrieval from GET /api/analysis/{id}
+    detail_resp = test_client.get(f"/api/analysis/{data['id']}")
+    assert detail_resp.status_code == 200
+    detail = detail_resp.json()
+    assert detail["analysis"]["classification"] == "Benign"
+    assert detail["analysis"]["analysis_source"] == "upload"
+
+
+
 def test_get_analysis_by_id_and_404(test_client: TestClient):
     """GET /api/analysis/{id} returns full report or 404 when missing."""
     # Missing ID returns 404
