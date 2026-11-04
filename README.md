@@ -1,6 +1,6 @@
 # TrojanGuard: AI-Powered Trojan Detection, Prediction & Behavioral Analysis System
 
-[![Test Suite](https://img.shields.io/badge/pytest-58%20passed-brightgreen.svg)](tests/)
+[![Test Suite](https://img.shields.io/badge/pytest-59%20passed-brightgreen.svg)](tests/)
 [![Frontend Build](https://img.shields.io/badge/vite-build%20passing-brightgreen.svg)](frontend/)
 [![Architecture](https://img.shields.io/badge/architecture-hybrid%20rule%2BML-blue.svg)](docs/ARCHITECTURE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -8,6 +8,30 @@
 > **Academic Demonstration & Prototype Disclaimer**  
 > TrojanGuard is an educational and defensive cybersecurity prototype designed to demonstrate malware telemetry interpretation, explainable risk scoring, and machine learning evaluation principles.  
 > **It contains zero offensive capabilities, does not execute uploaded files, does not contact live command-and-control servers, and does not dump memory from live endpoints.**
+
+---
+
+## Quick Start (One-Command Launcher)
+
+Launch both backend and frontend services with a single command from anywhere:
+
+```bash
+./run.sh
+```
+
+### Options & Flags
+- `./run.sh` — Standard startup: runs pre-flight checks, starts FastAPI backend on `:8001` and Vite dev server on `:5173`, polls `/api/health` until ready, and keeps the script in the foreground. Pressing `Ctrl+C` cleanly shuts down all processes and releases both ports.
+- `./run.sh --open` — Automatically opens `http://localhost:5173` in your default browser upon startup.
+- `./run.sh --reset-db` — Deletes `backend/trojanguard.db` before starting so history starts clean.
+- `./run.sh --setup` — Automatically creates `backend/.venv` and installs dependencies if missing.
+- `./run.sh --prod` — Builds the production frontend bundle (`npm run build`) and serves via `npm run preview`.
+- `./run.sh --help` — Shows usage and command line options.
+
+### Default Local URLs
+- **SOC Web Dashboard**: [http://localhost:5173](http://localhost:5173)
+- **FastAPI Documentation**: [http://localhost:8001/docs](http://localhost:8001/docs)
+- **Backend Health Probe**: [http://localhost:8001/api/health](http://localhost:8001/api/health)
+- **Runtime Logs**: `logs/backend.log` and `logs/frontend.log` (automatically created & gitignored)
 
 ---
 
@@ -211,17 +235,26 @@ The backend serves all intelligence via RESTful JSON over port 8001:
 
 ## 11. Installation and Execution
 
-### 11.1 Prerequisites
-- Linux OS (tested on Ubuntu 22.04 / Debian)
+### 11.1 Quick Start (Recommended)
+From the repository root, simply execute the launcher:
+```bash
+./run.sh
+```
+To automatically open the web console in your browser:
+```bash
+./run.sh --open
+```
+
+### 11.2 Prerequisites
+- Linux OS (tested on Ubuntu 22.04 / Debian / Arch Linux)
 - Python 3.12 (managed via `uv`)
 - Node.js >= 18 and `npm`
 
-### 11.2 Backend Setup & Execution
-```bash
-# Clone the repository
-git clone https://github.com/ShivamInnovates/TrojanGuard.git
-cd TrojanGuard
+### 11.3 Manual Setup & Execution (Alternative)
+If you prefer running backend and frontend services in separate manual terminals:
 
+#### Backend
+```bash
 # Set up Python virtual environment using uv
 cd backend
 uv venv --python 3.12 .venv
@@ -232,10 +265,10 @@ uv pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-### 11.3 Frontend Setup & Execution
+#### Frontend
 ```bash
 # In a separate terminal
-cd TrojanGuard/frontend
+cd frontend
 npm install
 
 # Start Vite dev server on port 5173
