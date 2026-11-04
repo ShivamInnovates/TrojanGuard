@@ -1,11 +1,6 @@
 import React, { useState } from 'react'
 import {
-  ShieldAlert,
-  Terminal,
-  Activity,
   Layers,
-  BarChart3,
-  AlertTriangle,
   FolderSearch,
 } from 'lucide-react'
 
@@ -167,56 +162,56 @@ export default function Styleguide() {
   ]
 
   return (
-    <div className="space-y-8 font-sans pb-12">
+    <div className="space-y-6 font-sans pb-12 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
+      <div className="border-b pb-3" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2">
-          <Layers size={18} className="text-[var(--color-accent)]" />
-          <h2 className="text-base font-bold font-mono text-[var(--color-text-primary)]">
+          <Layers size={16} className="text-[var(--color-text-muted)]" />
+          <h2 className="text-sm font-semibold font-mono text-[var(--color-text-primary)]">
             Design System & Component Styleguide
           </h2>
         </div>
-        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-          Catalog of standardized SOC components, design tokens, risk badges, telemetry streams, and charts.
-          <span className="ml-2 font-mono text-[var(--color-risk-medium)] uppercase font-semibold">
+        <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+          Standardized utilitarian SOC workbench components, risk chips, telemetry streams, and charts.
+          <span className="ml-2 font-mono text-[var(--color-risk-medium)] uppercase text-[10px]">
             [Sample Data Preview]
           </span>
         </p>
       </div>
 
       {/* 1. Simulated Disclaimer Banner */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
-            1. Simulated Telemetry Banner
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
+            1. Simulated telemetry banner
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
         <SimulatedBanner />
       </section>
 
       {/* 2. SeverityBadges */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
-            2. Severity & Classification Badges
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
+            2. Severity & classification chips
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
         <div
-          className="p-4 rounded-lg border space-y-4"
-          style={{ backgroundColor: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+          className="p-3.5 rounded-[4px] border space-y-3 bg-[var(--color-surface-1)]"
+          style={{ borderColor: 'var(--color-border)' }}
         >
           <div>
-            <div className="text-[11px] font-mono text-[var(--color-text-muted)] mb-2 uppercase">
-              Risk Level Variants (Low, Medium, High, Critical)
+            <div className="text-[10px] font-mono text-[var(--color-text-muted)] mb-1.5">
+              Risk level variants (Low, Medium, High, Critical)
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <SeverityBadge value="Low" />
               <SeverityBadge value="Medium" />
               <SeverityBadge value="High" />
@@ -225,10 +220,10 @@ export default function Styleguide() {
           </div>
 
           <div>
-            <div className="text-[11px] font-mono text-[var(--color-text-muted)] mb-2 uppercase">
-              Classification Variants (Benign, Suspicious, Trojan-like)
+            <div className="text-[10px] font-mono text-[var(--color-text-muted)] mb-1.5">
+              Classification variants (Benign, Suspicious, Trojan-like)
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <SeverityBadge value="Benign" />
               <SeverityBadge value="Suspicious" />
               <SeverityBadge value="Trojan-like" />
@@ -236,10 +231,10 @@ export default function Styleguide() {
           </div>
 
           <div>
-            <div className="text-[11px] font-mono text-[var(--color-text-muted)] mb-2 uppercase">
-              Size Variants (Small, Medium, Large)
+            <div className="text-[10px] font-mono text-[var(--color-text-muted)] mb-1.5">
+              Size variants (Small, Medium, Large)
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <SeverityBadge value="Critical" size="sm" />
               <SeverityBadge value="Critical" size="md" />
               <SeverityBadge value="Critical" size="lg" />
@@ -248,64 +243,61 @@ export default function Styleguide() {
         </div>
       </section>
 
-      {/* 3. Risk Gauge (SVG Semicircle) */}
-      <section className="space-y-3">
+      {/* 3. Risk Gauge */}
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
-            3. RiskGauge (SVG Semicircle, 0–100, Animated)
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
+            3. RiskGauge (0–100)
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
         <div
-          className="p-6 rounded-lg border grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 justify-items-center"
-          style={{ backgroundColor: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+          className="p-4 rounded-[4px] border grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 justify-items-center bg-[var(--color-surface-1)]"
+          style={{ borderColor: 'var(--color-border)' }}
         >
           <div className="flex flex-col items-center">
-            <RiskGauge score={18} level="Low" label="Clean Sample" />
-            <span className="text-[11px] font-mono text-[var(--color-text-muted)] mt-2">Score: 18 (Low)</span>
+            <RiskGauge score={18} level="Low" label="Clean Sample" size={150} strokeWidth={10} />
+            <span className="text-[10px] font-mono text-[var(--color-text-muted)] mt-1.5 tabular-nums">Score: 18 (Low)</span>
           </div>
           <div className="flex flex-col items-center">
-            <RiskGauge score={45} level="Medium" label="Auxiliary Stager" />
-            <span className="text-[11px] font-mono text-[var(--color-text-muted)] mt-2">Score: 45 (Medium)</span>
+            <RiskGauge score={45} level="Medium" label="Auxiliary Stager" size={150} strokeWidth={10} />
+            <span className="text-[10px] font-mono text-[var(--color-text-muted)] mt-1.5 tabular-nums">Score: 45 (Medium)</span>
           </div>
           <div className="flex flex-col items-center">
-            <RiskGauge score={74} level="High" label="Evasive Dropper" />
-            <span className="text-[11px] font-mono text-[var(--color-text-muted)] mt-2">Score: 74 (High)</span>
+            <RiskGauge score={74} level="High" label="Evasive Dropper" size={150} strokeWidth={10} />
+            <span className="text-[10px] font-mono text-[var(--color-text-muted)] mt-1.5 tabular-nums">Score: 74 (High)</span>
           </div>
           <div className="flex flex-col items-center">
-            <RiskGauge score={92} level="Critical" label="Active Trojan" />
-            <span className="text-[11px] font-mono text-[var(--color-text-muted)] mt-2">Score: 92 (Critical)</span>
+            <RiskGauge score={92} level="Critical" label="Active Trojan" size={150} strokeWidth={10} />
+            <span className="text-[10px] font-mono text-[var(--color-text-muted)] mt-1.5 tabular-nums">Score: 92 (Critical)</span>
           </div>
         </div>
       </section>
 
       {/* 4. StatCards */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
             4. StatCards
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             title="Total Analyses"
             value="1,482"
             subtitle="Uploaded & demo samples"
-            icon={Activity}
-            accentColor="var(--color-accent)"
           />
           <StatCard
             title="Threats Detected"
             value="342"
             subtitle="Suspicious & Trojan-like"
-            icon={ShieldAlert}
             accentColor="var(--color-risk-critical)"
             trend={{ label: '+12% this week', positive: false }}
           />
@@ -313,28 +305,24 @@ export default function Styleguide() {
             title="Average Risk Score"
             value="48.2"
             subtitle="Composite weighted score"
-            icon={BarChart3}
-            accentColor="var(--color-risk-medium)"
           />
           <StatCard
             title="Extracted IOCs"
             value="864"
             subtitle="Hashes, IPs, ports, domains"
-            icon={Terminal}
-            accentColor="var(--color-risk-high)"
           />
         </div>
       </section>
 
       {/* 5. AnalysisTable */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+            <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
               5. Clickable AnalysisTable
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-              SAMPLE DATA
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+              SAMPLE
             </span>
           </div>
           {selectedAnalysis && (
@@ -350,17 +338,17 @@ export default function Styleguide() {
       </section>
 
       {/* 6. EventStream & EventTimeline */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
             6. Telemetry EventStream & EventTimeline
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <EventStream events={sampleEvents} title="Sample Telemetry Stream" />
           <EventTimeline
             behaviorEvents={sampleBehaviorEvents}
@@ -370,30 +358,30 @@ export default function Styleguide() {
       </section>
 
       {/* 7. IocList */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
             7. Indicators of Compromise (IocList)
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
         <IocList iocs={sampleIocs} />
       </section>
 
       {/* 8. Recharts Visualizations */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
             8. SOC Visualizations (Recharts)
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <ThreatDistributionChart
             distribution={{ Benign: 14, Suspicious: 6, 'Trojan-like': 8 }}
           />
@@ -403,22 +391,22 @@ export default function Styleguide() {
       </section>
 
       {/* 9. Feedback & State Handlers */}
-      <section className="space-y-3">
+      <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
+          <span className="text-xs font-mono font-medium text-[var(--color-text-primary)]">
             9. Application State Feedback (Loading, Empty, Error)
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-            SAMPLE DATA
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+            SAMPLE
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
-            className="p-4 rounded-lg border"
-            style={{ backgroundColor: 'var(--color-surface-1)', borderColor: 'var(--color-border)' }}
+            className="p-4 rounded-[4px] border bg-[var(--color-surface-1)]"
+            style={{ borderColor: 'var(--color-border)' }}
           >
-            <div className="text-[11px] font-mono text-[var(--color-text-muted)] mb-2 uppercase">
+            <div className="text-[10px] font-mono text-[var(--color-text-muted)] mb-2">
               LoadingState
             </div>
             <LoadingState message="Extracting static PE headers..." />

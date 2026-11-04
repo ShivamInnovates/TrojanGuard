@@ -1,16 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  History as HistoryIcon,
   Search,
-  Filter,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  Download,
-  AlertCircle,
-  FileText,
 } from 'lucide-react'
 
 import { getHistory } from '../services/api'
@@ -45,7 +40,7 @@ export default function History() {
       if (searchInput !== querySearch) {
         updateParams({ search: searchInput, page: 1 })
       }
-    }, 350)
+    }, 300)
     return () => clearTimeout(handler)
   }, [searchInput, querySearch])
 
@@ -117,47 +112,44 @@ export default function History() {
   const hasActiveFilters = Boolean(querySearch || queryClassification || querySeverity)
 
   return (
-    <div className="space-y-6 font-sans pb-16 max-w-7xl mx-auto">
+    <div className="space-y-4 font-sans pb-12 max-w-7xl mx-auto">
       {/* Header */}
       <div
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b"
         style={{ borderColor: 'var(--color-border)' }}
       >
         <div>
-          <div className="flex items-center gap-2">
-            <HistoryIcon size={20} className="text-[var(--color-accent)]" />
-            <h1 className="text-base font-bold font-mono text-[var(--color-text-primary)]">
-              Historical Threat Detection Catalog
-            </h1>
-          </div>
-          <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+          <h1 className="text-sm font-semibold font-mono text-[var(--color-text-primary)]">
+            Historical Threat Detection Catalog
+          </h1>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
             Search, filter, and review persistent inspection records across uploads and synthetic simulation runs.
           </p>
         </div>
 
-        <div className="text-xs font-mono text-[var(--color-text-muted)] shrink-0">
-          Total Recorded: <strong className="text-[var(--color-text-primary)]">{totalItems}</strong> analyses
+        <div className="text-xs font-mono text-[var(--color-text-muted)] shrink-0 tabular-nums">
+          Total recorded: <strong className="text-[var(--color-text-primary)]">{totalItems}</strong> analyses
         </div>
       </div>
 
       {/* Filter and Search Controls Bar */}
       <div
-        className="p-4 rounded-lg border bg-[var(--color-surface-1)] space-y-3"
+        className="p-3 rounded-[4px] border bg-[var(--color-surface-1)] space-y-2.5"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {/* Search Input */}
           <div className="lg:col-span-2 relative">
             <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
             />
             <input
               type="text"
               placeholder="Search filename or SHA-256..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs font-mono rounded border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+              className="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-[3px] border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
             />
           </div>
 
@@ -166,7 +158,7 @@ export default function History() {
             <select
               value={queryClassification}
               onChange={(e) => updateParams({ classification: e.target.value, page: 1 })}
-              className="w-full px-3 py-2 text-xs font-mono rounded border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs font-mono rounded-[3px] border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
             >
               <option value="">All Classifications</option>
               <option value="Benign">Benign</option>
@@ -180,7 +172,7 @@ export default function History() {
             <select
               value={querySeverity}
               onChange={(e) => updateParams({ severity: e.target.value, page: 1 })}
-              className="w-full px-3 py-2 text-xs font-mono rounded border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs font-mono rounded-[3px] border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
             >
               <option value="">All Severity Levels</option>
               <option value="Low">Low Risk (0–30)</option>
@@ -195,7 +187,7 @@ export default function History() {
             <select
               value={querySort}
               onChange={(e) => updateParams({ sort: e.target.value, page: 1 })}
-              className="w-full px-2.5 py-2 text-xs font-mono rounded border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
+              className="w-full px-2 py-1.5 text-xs font-mono rounded-[3px] border bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border-[var(--color-border)] focus:outline-none focus:border-[var(--color-accent)] cursor-pointer"
             >
               <option value="timestamp">Date / Time</option>
               <option value="risk_score">Risk Score</option>
@@ -205,11 +197,11 @@ export default function History() {
             <button
               type="button"
               onClick={() => updateParams({ order: queryOrder === 'desc' ? 'asc' : 'desc', page: 1 })}
-              className="px-2.5 py-2 text-xs font-mono rounded border bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border-[var(--color-border)] hover:bg-[var(--color-surface-3)] transition-colors shrink-0"
+              className="px-2 py-1.5 text-xs font-mono rounded-[3px] border bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border-[var(--color-border)] hover:bg-[var(--color-surface-3)] transition-colors shrink-0 cursor-pointer"
               title={`Sort ${queryOrder === 'desc' ? 'Ascending' : 'Descending'}`}
             >
-              <ArrowUpDown size={13} className="inline-block" />
-              <span className="ml-1 uppercase text-[10px] font-bold">{queryOrder}</span>
+              <ArrowUpDown size={12} className="inline-block" />
+              <span className="ml-1 uppercase text-[10px] font-medium">{queryOrder}</span>
             </button>
           </div>
         </div>
@@ -223,8 +215,8 @@ export default function History() {
               onClick={handleClearFilters}
               className="inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline cursor-pointer"
             >
-              <RotateCcw size={12} />
-              <span>Clear Filters</span>
+              <RotateCcw size={11} />
+              <span>Clear filters</span>
             </button>
           </div>
         )}
@@ -241,7 +233,7 @@ export default function History() {
           retryLabel="Retry Catalog"
         />
       ) : data.items.length === 0 ? (
-        <div className="py-8">
+        <div className="py-6">
           <EmptyState
             title={hasActiveFilters ? 'No Analyses Match Your Filters' : 'No Analysis Records Found'}
             description={
@@ -255,30 +247,30 @@ export default function History() {
           />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* AnalysisTable with Clickable Rows */}
           <AnalysisTable analyses={data.items} />
 
           {/* Pagination Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-[var(--color-text-muted)] pt-2">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-[var(--color-text-muted)] pt-1">
+            <div className="tabular-nums">
               Showing <strong className="text-[var(--color-text-primary)]">{startIdx}</strong>–
               <strong className="text-[var(--color-text-primary)]">{endIdx}</strong> of{' '}
               <strong className="text-[var(--color-text-primary)]">{totalItems}</strong> analyses
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => updateParams({ page: Math.max(1, currentPage - 1) })}
                 disabled={currentPage <= 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded border bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] border bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                <ChevronLeft size={13} />
+                <ChevronLeft size={12} />
                 <span>Prev</span>
               </button>
 
-              <span className="px-2">
+              <span className="px-2 tabular-nums">
                 Page <strong className="text-[var(--color-text-primary)]">{currentPage}</strong> of{' '}
                 <strong className="text-[var(--color-text-primary)]">{totalPages}</strong>
               </span>
@@ -287,10 +279,10 @@ export default function History() {
                 type="button"
                 onClick={() => updateParams({ page: Math.min(totalPages, currentPage + 1) })}
                 disabled={currentPage >= totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded border bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] border bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>Next</span>
-                <ChevronRight size={13} />
+                <ChevronRight size={12} />
               </button>
             </div>
           </div>

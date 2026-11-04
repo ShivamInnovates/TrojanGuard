@@ -4,14 +4,14 @@ import { Loader2 } from 'lucide-react'
 /**
  * LoadingState component
  *
- * SOC loading indicator with spinner and customizable message.
+ * Minimalist SOC loading indicator with compact spinner and operational message.
  */
 export default function LoadingState({
   message = 'Loading telemetry & intelligence...',
   size = 'md',
   className = '',
 }) {
-  const iconSize = size === 'sm' ? 18 : size === 'lg' ? 32 : 24
+  const iconSize = size === 'sm' ? 14 : size === 'lg' ? 24 : 18
 
   return (
     <div
@@ -21,11 +21,11 @@ export default function LoadingState({
     >
       <Loader2
         size={iconSize}
-        className="animate-spin text-[var(--color-accent)]"
+        className="animate-spin text-[var(--color-text-muted)]"
         aria-hidden="true"
       />
       {message && (
-        <p className="mt-3 text-xs font-mono tracking-wide text-[var(--color-text-secondary)]">
+        <p className="mt-2 text-xs font-mono text-[var(--color-text-secondary)]">
           {message}
         </p>
       )}

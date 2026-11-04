@@ -17,26 +17,21 @@ function CustomTimelineTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {
     return (
       <div
-        className="px-3 py-2 rounded border text-xs font-mono shadow-md"
-        style={{
-          backgroundColor: 'var(--color-surface-2)',
-          borderColor: 'var(--color-border)',
-          color: 'var(--color-text-primary)',
-        }}
+        className="px-2.5 py-1.5 rounded-[3px] border text-xs font-mono bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-primary)]"
       >
-        <div className="font-semibold text-[var(--color-text-primary)] mb-1">
+        <div className="font-medium text-[var(--color-text-primary)] mb-1">
           {label}
         </div>
         {payload.map((item) => (
-          <div key={item.dataKey} className="flex items-center gap-2">
+          <div key={item.dataKey} className="flex items-center gap-1.5 text-[11px] tabular-nums">
             <span
-              className="w-2 h-2 rounded-full"
+              className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: item.color }}
             />
             <span className="text-[var(--color-text-secondary)]">
               {item.name}:
             </span>
-            <span className="font-bold text-[var(--color-text-primary)]">
+            <span className="font-semibold text-[var(--color-text-primary)]">
               {item.value}
             </span>
           </div>
@@ -60,10 +55,9 @@ export default function DetectionTimeline({
   if (!data || data.length === 0) {
     return (
       <div
-        className={`flex flex-col items-center justify-center text-center p-6 text-xs text-[var(--color-text-muted)] font-mono border rounded-lg ${className}`}
+        className={`flex flex-col items-center justify-center text-center p-6 text-xs text-[var(--color-text-muted)] font-mono border rounded-[4px] bg-[var(--color-surface-1)] ${className}`}
         style={{
           height,
-          backgroundColor: 'var(--color-surface-1)',
           borderColor: 'var(--color-border)',
         }}
       >
@@ -90,18 +84,16 @@ export default function DetectionTimeline({
 
   return (
     <div
-      className={`rounded-lg border p-4 flex flex-col font-sans ${className}`}
+      className={`rounded-[4px] border p-3.5 flex flex-col font-sans bg-[var(--color-surface-1)] ${className}`}
       style={{
-        backgroundColor: 'var(--color-surface-1)',
         borderColor: 'var(--color-border)',
-        boxShadow: 'var(--shadow-card)',
       }}
     >
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-primary)]">
-          Detection Timeline (Volume over Time)
+        <h3 className="text-xs font-medium text-[var(--color-text-primary)]">
+          Detection timeline
         </h3>
-        <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
+        <span className="text-[11px] font-mono text-[var(--color-text-muted)] tabular-nums">
           {data.length} intervals
         </span>
       </div>
@@ -109,17 +101,17 @@ export default function DetectionTimeline({
       <div style={{ width: '100%', height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
+            <CartesianGrid strokeDasharray="2 2" stroke="var(--color-border-subtle)" vertical={false} />
             <XAxis
               dataKey="time"
               stroke="var(--color-text-muted)"
-              fontSize={11}
+              fontSize={10}
               tickLine={false}
               axisLine={{ stroke: 'var(--color-border)' }}
             />
             <YAxis
               stroke="var(--color-text-muted)"
-              fontSize={11}
+              fontSize={10}
               tickLine={false}
               axisLine={{ stroke: 'var(--color-border)' }}
               allowDecimals={false}
@@ -127,9 +119,9 @@ export default function DetectionTimeline({
             <Tooltip content={<CustomTimelineTooltip />} />
             <Legend
               verticalAlign="bottom"
-              height={30}
+              height={28}
               formatter={(val) => (
-                <span className="text-xs font-mono text-[var(--color-text-secondary)]">
+                <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">
                   {val}
                 </span>
               )}
@@ -138,25 +130,25 @@ export default function DetectionTimeline({
               type="monotone"
               dataKey="Trojan-like"
               stackId="1"
-              stroke="var(--color-risk-critical)"
-              fill="var(--color-risk-critical-bg)"
-              strokeWidth={2}
+              stroke="#ef4444"
+              fill="rgba(239, 68, 68, 0.12)"
+              strokeWidth={1.5}
             />
             <Area
               type="monotone"
               dataKey="Suspicious"
               stackId="1"
-              stroke="var(--color-risk-high)"
-              fill="var(--color-risk-high-bg)"
-              strokeWidth={2}
+              stroke="#f97316"
+              fill="rgba(249, 115, 22, 0.12)"
+              strokeWidth={1.5}
             />
             <Area
               type="monotone"
               dataKey="Benign"
               stackId="1"
-              stroke="var(--color-risk-low)"
-              fill="var(--color-risk-low-bg)"
-              strokeWidth={2}
+              stroke="#22c55e"
+              fill="rgba(34, 197, 94, 0.12)"
+              strokeWidth={1.5}
             />
           </AreaChart>
         </ResponsiveContainer>
