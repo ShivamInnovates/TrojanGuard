@@ -59,6 +59,9 @@ class StaticResult(BaseModel):
     # List of features actually observed for this sample
     observed_features: list[str] = Field(default_factory=list)
 
+    # Isolated analysis worker execution metadata
+    sandbox: dict[str, Any] | None = None
+
 
 def calculate_entropy(data: bytes) -> float:
     """

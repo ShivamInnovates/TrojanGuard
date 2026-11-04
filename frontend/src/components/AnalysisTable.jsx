@@ -6,8 +6,8 @@ import SeverityBadge from './SeverityBadge'
 /**
  * AnalysisTable component
  *
- * Dense, utilitarian tabular list of analyses.
- * Compact row height (~36px), tabular figures, and subtle hover states.
+ * Clickable tabular display of historical analyses.
+ * Rows navigate to /analysis/:id or invoke an onRowClick handler.
  */
 export default function AnalysisTable({
   analyses = [],
@@ -27,28 +27,31 @@ export default function AnalysisTable({
 
   return (
     <div
-      className={`rounded-[4px] border overflow-hidden font-sans bg-[var(--color-surface-1)] ${className}`}
+      className={`rounded-lg border overflow-hidden font-sans ${className}`}
       style={{
+        backgroundColor: 'var(--color-surface-1)',
         borderColor: 'var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
       }}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr
-              className="border-b font-mono text-[11px] text-[var(--color-text-muted)] select-none bg-[var(--color-surface-2)]"
+              className="border-b uppercase font-mono text-[11px] text-[var(--color-text-secondary)] select-none"
               style={{
+                backgroundColor: 'var(--color-surface-2)',
                 borderColor: 'var(--color-border)',
               }}
             >
-              <th className="py-2 px-3 font-medium w-14">ID</th>
-              <th className="py-2 px-3 font-medium">Sample / Target</th>
-              <th className="py-2 px-3 font-medium">SHA-256</th>
-              <th className="py-2 px-3 font-medium">Classification</th>
-              <th className="py-2 px-3 font-medium">Risk Level</th>
-              <th className="py-2 px-3 font-medium text-right">Score</th>
-              <th className="py-2 px-3 font-medium">Timestamp (UTC)</th>
-              <th className="py-2 px-3 font-medium text-right w-10"></th>
+              <th className="py-3 px-4 font-semibold">ID</th>
+              <th className="py-3 px-4 font-semibold">Sample / File</th>
+              <th className="py-3 px-4 font-semibold">SHA-256</th>
+              <th className="py-3 px-4 font-semibold">Classification</th>
+              <th className="py-3 px-4 font-semibold">Risk Level</th>
+              <th className="py-3 px-4 font-semibold">Score</th>
+              <th className="py-3 px-4 font-semibold">Timestamp</th>
+              <th className="py-3 px-4 font-semibold text-right">Details</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border-subtle)] font-sans">
@@ -56,7 +59,7 @@ export default function AnalysisTable({
               <tr>
                 <td
                   colSpan={8}
-                  className="py-8 text-center text-xs text-[var(--color-text-muted)] font-mono"
+                  className="py-10 text-center text-xs text-[var(--color-text-muted)]"
                 >
                   {emptyMessage}
                 </td>
@@ -85,63 +88,68 @@ export default function AnalysisTable({
                     }}
                   >
                     {/* ID */}
-                    <td className="py-2 px-3 font-mono text-[11px] text-[var(--color-text-muted)] tabular-nums">
+                    <td className="py-3 px-4 font-mono font-medium text-[var(--color-text-muted)]">
                       #{item.id}
                     </td>
 
                     {/* Filename & Type */}
-                    <td className="py-2 px-3">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <FileText size={13} className="text-[var(--color-text-muted)] shrink-0 group-hover:text-[var(--color-accent)] transition-colors" />
-                        <span className="font-medium text-[var(--color-text-primary)] truncate max-w-[220px]">
+                        <FileText size={15} className="text-[var(--color-accent)] shrink-0" />
+                        <span className="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors truncate max-w-[200px]">
                           {item.filename || 'sample.bin'}
                         </span>
                         {item.file_type && (
-                          <span className="text-[10px] font-mono px-1 py-0.2 rounded-[2px] bg-[var(--color-surface-3)] text-[var(--color-text-muted)] shrink-0">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--color-surface-3)] text-[var(--color-text-muted)] uppercase shrink-0">
                             {item.file_type}
                           </span>
                         )}
                         {(item.analysis_source === 'demo' || item.analysis_source === 'seed_demo') && (
                           <span
-                            className="text-[10px] font-mono px-1.5 py-0.2 rounded-[2px] text-[var(--color-text-muted)] bg-[var(--color-surface-3)] border border-[var(--color-border)] shrink-0"
+                            className="text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold shrink-0"
+                            style={{
+                              backgroundColor: 'var(--color-surface-3)',
+                              color: 'var(--color-accent)',
+                              border: '1px solid var(--color-accent-dim)',
+                            }}
                             title="Synthetic demonstration telemetry"
                           >
-                            Demo data
+                            Demonstration data
                           </span>
                         )}
                       </div>
                     </td>
 
                     {/* SHA-256 */}
-                    <td className="py-2 px-3 font-mono text-[11px] text-[var(--color-text-secondary)]">
-                      <span title={item.sha256}>{shortSha}</span>
+                    <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-text-secondary)]">
+                      {shortSha}
                     </td>
 
                     {/* Classification */}
-                    <td className="py-2 px-3">
-                      <SeverityBadge value={item.classification} source={item.analysis_source} size="sm" />
+                    <td className="py-3 px-4">
+                      <SeverityBadge value={item.classification} source={item.analysis_source} />
                     </td>
 
                     {/* Risk Level */}
-                    <td className="py-2 px-3">
-                      <SeverityBadge value={item.risk_level} size="sm" />
+                    <td className="py-3 px-4">
+                      <SeverityBadge value={item.risk_level} />
                     </td>
 
                     {/* Score */}
-                    <td className="py-2 px-3 font-mono text-xs font-semibold text-[var(--color-text-primary)] text-right tabular-nums">
-                      {item.risk_score}<span className="text-[10px] text-[var(--color-text-muted)] font-normal">/100</span>
+                    <td className="py-3 px-4 font-mono font-bold text-[var(--color-text-primary)]">
+                      {item.risk_score}/100
                     </td>
 
                     {/* Timestamp */}
-                    <td className="py-2 px-3 font-mono text-[11px] text-[var(--color-text-muted)] whitespace-nowrap tabular-nums">
+                    <td className="py-3 px-4 font-mono text-[11px] text-[var(--color-text-muted)] whitespace-nowrap">
                       {formattedTime}
                     </td>
 
                     {/* Action chevron */}
-                    <td className="py-2 px-3 text-right">
+                    <td className="py-3 px-4 text-right">
                       <ChevronRight
-                        size={14}
-                        className="inline-block text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] transition-colors"
+                        size={16}
+                        className="inline-block text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition-all"
                       />
                     </td>
                   </tr>

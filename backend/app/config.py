@@ -36,9 +36,13 @@ REAL_METRICS_PATH: Path = REAL_ML_DIR / "metrics_real.json"
 RANDOM_SEED: int = 42
 
 # ---------------------------------------------------------------------------
-# Upload safety
+# Upload safety & Isolated Analysis Worker
 # ---------------------------------------------------------------------------
 MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB hard limit
+
+# Sandbox isolation mode: "best_effort" (default: apply rlimits, use unshare if available)
+# or "strict" (fail upload analysis if unshare is unavailable).
+SANDBOX_MODE: str = os.getenv("SANDBOX_MODE", "best_effort").lower().strip()
 
 # ---------------------------------------------------------------------------
 # Risk-score thresholds & Classification Rules

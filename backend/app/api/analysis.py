@@ -9,6 +9,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.config import MAX_UPLOAD_BYTES
 from app.models.schemas import AnalysisReport, ErrorResponse
+from app.sandbox.runner import SandboxExecutionError
 from app.services.pipeline import run_analysis
 from app.services.repository import get_report
 
@@ -51,6 +52,13 @@ async def analyze_sample(file: UploadFile = File(...)):
         if report.analysis:
             report.analysis.features_json = None
         return report
+    except SandboxExecutionError as se:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Isolated analysis worker failed: {se.reason}",
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

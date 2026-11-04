@@ -3,15 +3,16 @@ import React from 'react'
 /**
  * SeverityBadge component
  *
- * Renders standardized chips for Risk Levels and Classifications.
- * Calm, low-contrast utilitarian style with 6px indicator dot and subtle borders.
+ * Renders standardized badges for Risk Levels (Low, Medium, High, Critical)
+ * and Classifications (Benign, Suspicious, Trojan-like).
+ * Uses CSS design tokens exclusively — zero hardcoded hex colors.
  */
 export default function SeverityBadge({
   value,
   source = null,
   label = null,
-  variant = 'auto',
-  size = 'md',
+  variant = 'auto', // 'level' | 'classification' | 'auto'
+  size = 'md', // 'sm' | 'md' | 'lg'
   className = '',
 }) {
   if (!value) return null
@@ -34,30 +35,30 @@ export default function SeverityBadge({
   if (norm === 'low' || norm === 'benign') {
     colorVar = 'var(--color-risk-low)'
     bgVar = 'var(--color-risk-low-bg)'
-    borderVar = 'rgba(34, 197, 94, 0.25)'
+    borderVar = 'hsl(142 50% 25%)'
   } else if (norm === 'medium') {
     colorVar = 'var(--color-risk-medium)'
     bgVar = 'var(--color-risk-medium-bg)'
-    borderVar = 'rgba(234, 179, 8, 0.25)'
+    borderVar = 'hsl(45 50% 25%)'
   } else if (norm === 'high' || norm === 'suspicious') {
     colorVar = 'var(--color-risk-high)'
     bgVar = 'var(--color-risk-high-bg)'
-    borderVar = 'rgba(249, 115, 22, 0.25)'
+    borderVar = 'hsl(28 50% 25%)'
   } else if (norm === 'critical' || norm === 'trojan-like' || norm === 'trojan') {
     colorVar = 'var(--color-risk-critical)'
     bgVar = 'var(--color-risk-critical-bg)'
-    borderVar = 'rgba(239, 68, 68, 0.25)'
+    borderVar = 'hsl(0 50% 25%)'
   }
 
   const sizeClasses = {
-    sm: 'text-[10px] px-1.5 py-0.5 gap-1',
-    md: 'text-[11px] px-2 py-0.5 gap-1.5',
-    lg: 'text-xs px-2.5 py-1 gap-2 font-medium',
-  }[size] || 'text-[11px] px-2 py-0.5 gap-1.5'
+    sm: 'text-xs px-2 py-0.5 gap-1',
+    md: 'text-xs px-2.5 py-1 gap-1.5',
+    lg: 'text-sm px-3 py-1.5 gap-2 font-medium',
+  }[size] || 'text-xs px-2.5 py-1 gap-1.5'
 
   return (
     <span
-      className={`inline-flex items-center rounded-[3px] font-mono select-none text-left leading-normal ${sizeClasses} ${className}`}
+      className={`inline-flex items-center rounded font-mono font-medium tracking-wide uppercase transition-colors select-none text-left ${sizeClasses} ${className}`}
       style={{
         color: colorVar,
         backgroundColor: bgVar,
@@ -69,7 +70,7 @@ export default function SeverityBadge({
         style={{ backgroundColor: colorVar }}
         aria-hidden="true"
       />
-      <span className="truncate">{displayLabel}</span>
+      <span>{displayLabel}</span>
     </span>
   )
 }

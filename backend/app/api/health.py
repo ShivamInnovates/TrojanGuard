@@ -10,9 +10,10 @@ from fastapi import APIRouter, Response, status
 from fastapi.responses import JSONResponse
 import joblib
 
-from app.config import MODEL_PATH
+from app.config import MODEL_PATH, SANDBOX_MODE
 from app.database import get_conn
 from app.models.schemas import HealthResponse
+from app.sandbox.runner import check_unshare_supported
 
 router = APIRouter(tags=["health"])
 
@@ -72,6 +73,12 @@ async def health_check():
     except Exception:
         db_reachable = False
 
+    sandbox_info = {
+        "available": True,
+        "network_isolation": check_unshare_supported(),
+        "mode": SANDBOX_MODE,
+    }
+
     if not db_reachable:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -85,6 +92,7 @@ async def health_check():
                 trained_on_synthetic=trained_on_synthetic,
                 python_version=python_ver,
                 app_version=app_ver,
+                sandbox=sandbox_info,
             ).model_dump(),
         )
 
@@ -98,4 +106,5 @@ async def health_check():
         trained_on_synthetic=trained_on_synthetic,
         python_version=python_ver,
         app_version=app_ver,
+        sandbox=sandbox_info,
     )

@@ -24,6 +24,7 @@ from app.analysis.static import analyze_bytes, StaticResult
 from app.analysis.feature_extractor import extract_features, FeatureVector
 from app.analysis.ioc import extract_iocs
 from app.ml.predictor import predict
+from app.sandbox.runner import run_in_sandbox
 from app.services.risk_engine import evaluate_risk, get_recommended_steps
 from app.services.repository import insert_analysis
 
@@ -68,7 +69,7 @@ def run_analysis(
     if not is_demo:
         if data is None:
             raise ValueError("File byte data must be provided for upload analysis.")
-        static_result = analyze_bytes(filename=filename, data=data)
+        static_result = run_in_sandbox(filename=filename, data=data)
         behavior_events = None
         network_events = None
     else:
@@ -77,6 +78,14 @@ def run_analysis(
         if not filename or filename == "sample.bin":
             filename = sc.filename
         static_result = sc.static_result
+        static_result.sandbox = {
+            "used": False,
+            "network_isolated": False,
+            "rlimits_applied": [],
+            "timeout_s": 10,
+            "duration_ms": 0.0,
+            "status": "not_applicable",
+        }
         behavior_events = sc.behavior_events
         network_events = sc.network_events
 
@@ -110,6 +119,15 @@ def run_analysis(
     )
 
     # Step 6: Serialization of features and evidence metadata into features_json
+    sandbox_meta = getattr(static_result, "sandbox", None) or {
+        "used": not is_demo,
+        "network_isolated": False,
+        "rlimits_applied": [],
+        "timeout_s": 10,
+        "duration_ms": 0.0,
+        "status": "not_applicable" if is_demo else "unknown",
+    }
+
     metadata_payload = {
         "features": fv.values,
         "observed_mask": fv.observed_mask,
@@ -119,6 +137,7 @@ def run_analysis(
         "classifier_agrees": risk_result["classifier_agrees"],
         "classifier_disagreement_reason": risk_result["classifier_disagreement_reason"],
         "classifier_output": clf_output,
+        "sandbox": sandbox_meta,
     }
     features_json_str = json.dumps(metadata_payload, sort_keys=False)
 
@@ -172,6 +191,7 @@ def run_analysis(
         risk_result["risk_score"],
         risk_result["evidence"],
     )
+    report.sandbox = sandbox_meta
 
     return report
 

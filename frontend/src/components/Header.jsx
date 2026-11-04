@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Clock } from 'lucide-react'
+import { Server, Clock } from 'lucide-react'
 import { getHealth } from '../services/api'
 
 /**
  * Header component
  *
- * Utilitarian top workbench header bar with live backend status indicator and UTC clock.
+ * Top SOC header bar with live backend status indicator and UTC clock.
  */
 export default function Header({ title = 'SOC Workbench', subtitle = null, className = '' }) {
   const [healthStatus, setHealthStatus] = useState('checking') // 'online' | 'offline' | 'checking'
@@ -39,65 +39,79 @@ export default function Header({ title = 'SOC Workbench', subtitle = null, class
     }
   }, [])
 
-  const statusConfig = {
+  const statusColors = {
     online: {
-      dotColor: 'var(--color-risk-low)',
-      label: 'API Connected',
+      text: 'var(--color-risk-low)',
+      bg: 'var(--color-risk-low-bg)',
+      border: 'hsl(142 50% 25%)',
+      label: 'API Online',
     },
     degraded: {
-      dotColor: 'var(--color-risk-medium)',
-      label: 'API Degraded',
+      text: 'var(--color-risk-medium)',
+      bg: 'var(--color-risk-medium-bg)',
+      border: 'hsl(45 50% 25%)',
+      label: 'Degraded',
     },
     offline: {
-      dotColor: 'var(--color-risk-critical)',
-      label: 'API Offline (8001)',
+      text: 'var(--color-risk-critical)',
+      bg: 'var(--color-risk-critical-bg)',
+      border: 'hsl(0 50% 25%)',
+      label: 'Offline (8001)',
     },
     checking: {
-      dotColor: 'var(--color-text-muted)',
-      label: 'Connecting...',
+      text: 'var(--color-text-muted)',
+      bg: 'var(--color-surface-2)',
+      border: 'var(--color-border)',
+      label: 'Checking API',
     },
   }[healthStatus] || {
-    dotColor: 'var(--color-text-muted)',
+    text: 'var(--color-text-muted)',
+    bg: 'var(--color-surface-2)',
+    border: 'var(--color-border)',
     label: 'Checking',
   }
 
   return (
     <header
-      className={`h-12 px-5 border-b flex items-center justify-between select-none shrink-0 ${className}`}
+      className={`h-14 px-6 border-b flex items-center justify-between select-none shrink-0 ${className}`}
       style={{
         backgroundColor: 'var(--color-surface-1)',
         borderColor: 'var(--color-border)',
       }}
     >
-      <div className="flex items-center gap-3">
-        <h1 className="text-xs font-medium font-sans text-[var(--color-text-primary)]">
+      <div>
+        <h1 className="font-mono text-sm font-bold tracking-tight text-[var(--color-text-primary)]">
           {title}
         </h1>
         {subtitle && (
-          <span className="text-[11px] text-[var(--color-text-muted)] font-sans border-l border-[var(--color-border)] pl-3">
+          <p className="text-[11px] text-[var(--color-text-muted)] -mt-0.5 font-sans">
             {subtitle}
-          </span>
+          </p>
         )}
       </div>
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-3">
         {/* UTC Clock */}
-        <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--color-text-secondary)] px-2 py-0.5 rounded-[3px] bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)] tabular-nums">
-          <Clock size={11} className="text-[var(--color-text-muted)]" />
+        <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--color-text-secondary)] px-2.5 py-1 rounded bg-[var(--color-bg-base)] border border-[var(--color-border-subtle)]">
+          <Clock size={13} className="text-[var(--color-accent)]" />
           <span>{utcTime || '—'}</span>
         </div>
 
-        {/* Backend Health Indicator */}
+        {/* Backend Health Pill */}
         <div
-          className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-[3px] bg-[var(--color-surface-2)] border border-[var(--color-border)]"
-          title={`Backend status: ${healthStatus}`}
+          className="flex items-center gap-1.5 text-xs font-mono font-medium px-2.5 py-1 rounded"
+          style={{
+            color: statusColors.text,
+            backgroundColor: statusColors.bg,
+            border: `1px solid ${statusColors.border}`,
+          }}
         >
           <span
-            className="w-1.5 h-1.5 rounded-full inline-block"
-            style={{ backgroundColor: statusConfig.dotColor }}
-            aria-hidden="true"
+            className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse"
+            style={{ backgroundColor: statusColors.text }}
           />
-          <span className="text-[var(--color-text-secondary)]">{statusConfig.label}</span>
+          <Server size={12} className="shrink-0" />
+          <span>{statusColors.label}</span>
         </div>
       </div>
     </header>

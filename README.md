@@ -1,6 +1,6 @@
 # TrojanGuard: AI-Powered Trojan Detection, Prediction & Behavioral Analysis System
 
-[![Test Suite](https://img.shields.io/badge/pytest-59%20passed-brightgreen.svg)](tests/)
+[![Test Suite](https://img.shields.io/badge/pytest-58%20passed-brightgreen.svg)](tests/)
 [![Frontend Build](https://img.shields.io/badge/vite-build%20passing-brightgreen.svg)](frontend/)
 [![Architecture](https://img.shields.io/badge/architecture-hybrid%20rule%2BML-blue.svg)](docs/ARCHITECTURE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -8,30 +8,6 @@
 > **Academic Demonstration & Prototype Disclaimer**  
 > TrojanGuard is an educational and defensive cybersecurity prototype designed to demonstrate malware telemetry interpretation, explainable risk scoring, and machine learning evaluation principles.  
 > **It contains zero offensive capabilities, does not execute uploaded files, does not contact live command-and-control servers, and does not dump memory from live endpoints.**
-
----
-
-## Quick Start (One-Command Launcher)
-
-Launch both backend and frontend services with a single command from anywhere:
-
-```bash
-./run.sh
-```
-
-### Options & Flags
-- `./run.sh` — Standard startup: runs pre-flight checks, starts FastAPI backend on `:8001` and Vite dev server on `:5173`, polls `/api/health` until ready, and keeps the script in the foreground. Pressing `Ctrl+C` cleanly shuts down all processes and releases both ports.
-- `./run.sh --open` — Automatically opens `http://localhost:5173` in your default browser upon startup.
-- `./run.sh --reset-db` — Deletes `backend/trojanguard.db` before starting so history starts clean.
-- `./run.sh --setup` — Automatically creates `backend/.venv` and installs dependencies if missing.
-- `./run.sh --prod` — Builds the production frontend bundle (`npm run build`) and serves via `npm run preview`.
-- `./run.sh --help` — Shows usage and command line options.
-
-### Default Local URLs
-- **SOC Web Dashboard**: [http://localhost:5173](http://localhost:5173)
-- **FastAPI Documentation**: [http://localhost:8001/docs](http://localhost:8001/docs)
-- **Backend Health Probe**: [http://localhost:8001/api/health](http://localhost:8001/api/health)
-- **Runtime Logs**: `logs/backend.log` and `logs/frontend.log` (automatically created & gitignored)
 
 ---
 
@@ -235,26 +211,17 @@ The backend serves all intelligence via RESTful JSON over port 8001:
 
 ## 11. Installation and Execution
 
-### 11.1 Quick Start (Recommended)
-From the repository root, simply execute the launcher:
-```bash
-./run.sh
-```
-To automatically open the web console in your browser:
-```bash
-./run.sh --open
-```
-
-### 11.2 Prerequisites
-- Linux OS (tested on Ubuntu 22.04 / Debian / Arch Linux)
+### 11.1 Prerequisites
+- Linux OS (tested on Ubuntu 22.04 / Debian)
 - Python 3.12 (managed via `uv`)
 - Node.js >= 18 and `npm`
 
-### 11.3 Manual Setup & Execution (Alternative)
-If you prefer running backend and frontend services in separate manual terminals:
-
-#### Backend
+### 11.2 Backend Setup & Execution
 ```bash
+# Clone the repository
+git clone https://github.com/ShivamInnovates/TrojanGuard.git
+cd TrojanGuard
+
 # Set up Python virtual environment using uv
 cd backend
 uv venv --python 3.12 .venv
@@ -265,10 +232,10 @@ uv pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-#### Frontend
+### 11.3 Frontend Setup & Execution
 ```bash
 # In a separate terminal
-cd frontend
+cd TrojanGuard/frontend
 npm install
 
 # Start Vite dev server on port 5173
@@ -354,7 +321,42 @@ npm run build
 
 ---
 
-## 17. Safety & Defensive Guarantee
+## 17. Sandboxing and Isolation (Isolated Analysis Worker)
 
-> **Defensive In-Memory Sandbox Guarantee**  
-> TrojanGuard parses uploaded files strictly in memory using byte-level headers and the Python `pefile` library. Uploaded bytes are never executed, saved to disk with executable permissions, passed to a subshell, or evaluated via `eval()`, `exec()`, or `subprocess`. The backend operates under strict non-execution safety.
+TrojanGuard employs an **isolated analysis worker** to protect the backend server and host operating system from potentially malicious file parser exploits (e.g., buffer overflows in binary header parsers, decompression bombs, or unbounded loops in untrusted formats).
+
+### 17.1 Honest Architecture: Why "Isolated Analysis Worker" Not "Malware Sandbox"
+Academic honesty requires precise terminology:
+- **What it is**: An OS-level process boundary leveraging Linux namespaces (`unshare -rn`) and POSIX resource limits (`setrlimit`). It shields the primary backend service from resource exhaustion, file writes, and network calls while parsing untrusted static bytes.
+- **What it is NOT**: It is **not a malware sandbox or virtual machine hypervisor**. Uploaded files are **never executed**, run, or simulated dynamically in this worker. Only our own static parsing script (`backend/app/sandbox/worker.py`) executes. Calling this a "malware sandbox" would falsely imply dynamic execution of untrusted code.
+
+### 17.2 Isolation Enforcement & Exact Resource Limits
+When an upload is received, the backend launches `worker.py` in an isolated child process:
+- **Network Isolation**: Placed in a separate, isolated network namespace (`unshare -rn`). The worker has zero network interfaces (no loopback, no Ethernet/WiFi, no routing), causing any network socket creation or connection attempt to immediately fail with `[Errno 101] Network is unreachable`.
+- **CPU Time Limit (`RLIMIT_CPU`)**: Soft and hard caps set to 5 seconds.
+- **Memory Limit (`RLIMIT_AS`)**: Hard address space cap set to 512 MB. Memory allocation beyond 512 MB raises `MemoryError`.
+- **File Creation Prevention (`RLIMIT_FSIZE`)**: Set to 0 bytes. Any attempt to write or create a file on disk aborts with `OSError: [Errno 27] File too large`.
+- **Descriptor Limit (`RLIMIT_NOFILE`)**: Capped at 32 open file descriptors.
+- **Child Process Prevention (`RLIMIT_NPROC`)**: Restricted to prevent fork bombing.
+- **Core Dumps Disabled (`RLIMIT_CORE`)**: Set to 0 bytes.
+- **Process Lifetime & Timeout**: 10 seconds wall-clock timeout enforced with `os.killpg(p.pid, signal.SIGKILL)` to cleanly tear down the entire process group if a parser hangs.
+- **Filesystem Isolation**: Worker runs in a fresh, isolated temporary directory (`tempfile.TemporaryDirectory()`) that is wiped upon completion.
+- **Zero Disk Writes for Uploads**: Uploaded bytes are streamed strictly across `sys.stdin.buffer` and never written to disk by the parent or child process.
+- **Fixed Invariant Command Line**: The command line uses a strictly invariant parameter list (`["unshare", "-rn", python, "-I", worker.py]`). User input and uploaded file names are never passed in the command line or environment.
+
+### 17.3 Sandboxed Training Launcher (`scripts/train_real_sandboxed.sh`)
+Offline model training on the 38,711-sample CIC-MalMem-2022 dataset is wrapped in a dedicated sandboxed launcher:
+- Verifies raw dataset SHA-256 against `ml/real/DATASET.sha256` (`624ecb6c9229cf62bd3b8f65d23a2b132760e6bada458aa46eee134a313840c4`).
+- Launches `ml/real/train_real.py` under `unshare -rn` to enforce 100% offline, network-free training.
+- Enforces 6 GB virtual memory and 600s CPU limits via `ulimit`.
+- Confirms output model (`model_real.pkl`) and metrics (`metrics_real.json`) are updated upon completion.
+
+---
+
+## 18. Safety & Defensive Guarantee
+
+> **Defensive Non-Execution Guarantee & Subprocess Invariant**  
+> TrojanGuard parses uploaded files strictly via static inspection using byte-level headers and the Python `pefile` library inside the isolated analysis worker.
+> 
+> **Uploaded content is NEVER executed, evaluated, imported, or run.**  
+> Python's `subprocess` is used **strictly** to launch our own standalone worker script (`backend/app/sandbox/worker.py`) with a fixed argument list and minimal sanitized environment. Untrusted file bytes are streamed exclusively across `stdin` without touching the disk or subshell. The codebase contains **0** calls to `os.system()`, `eval()`, `exec()`, or untrusted `pickle.loads()`.

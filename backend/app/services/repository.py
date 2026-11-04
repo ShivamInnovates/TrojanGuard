@@ -211,6 +211,7 @@ def insert_analysis(
         features_dict: dict[str, Any] = {}
         observed_mask_dict: dict[str, bool] = {}
         classifier_output_dict: dict[str, Any] | None = None
+        sandbox_meta: dict[str, Any] | None = None
 
         if data.get("features_json"):
             try:
@@ -220,6 +221,7 @@ def insert_analysis(
                     features_dict = fj.get("features", {})
                     observed_mask_dict = fj.get("observed_mask", {})
                     classifier_output_dict = fj.get("classifier_output")
+                    sandbox_meta = fj.get("sandbox")
                     if "evidence" in fj:
                         evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
                     if "context" in fj:
@@ -261,6 +263,7 @@ def insert_analysis(
             network_events=inserted_networks,
             iocs=inserted_iocs,
             recommended_steps=rec_steps,
+            sandbox=sandbox_meta,
         )
 
 
@@ -352,6 +355,7 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
         features_dict: dict[str, Any] = {}
         observed_mask_dict: dict[str, bool] = {}
         classifier_output_dict: dict[str, Any] | None = None
+        sandbox_meta: dict[str, Any] | None = None
 
         if row["features_json"]:
             try:
@@ -361,6 +365,7 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
                     features_dict = fj.get("features", {})
                     observed_mask_dict = fj.get("observed_mask", {})
                     classifier_output_dict = fj.get("classifier_output")
+                    sandbox_meta = fj.get("sandbox")
                     if "evidence" in fj:
                         evidence_items = [EvidenceItem(**e) for e in fj["evidence"]]
                     if "context" in fj:
@@ -402,6 +407,7 @@ def get_report(analysis_id: int, db_path: Path | None = None, conn: sqlite3.Conn
             network_events=networks,
             iocs=iocs,
             recommended_steps=rec_steps,
+            sandbox=sandbox_meta,
         )
 
 

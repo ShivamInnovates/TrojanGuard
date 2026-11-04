@@ -138,9 +138,22 @@ The heuristic weights are hand-tuned based on established defensive threat intel
 
 ### Q17: How is the application kept safe from uploaded files?
 **Answer:**
-TrojanGuard guarantees a **Defensive In-Memory Sandbox**:
-1. **No Disk Execution**: Uploaded files are read into RAM buffers using streaming byte readers (`UploadFile`).
-2. **Parsing Without Execution**: Files are parsed via Python `pefile` and `magic`, which parse binary headers and data structures without ever executing file code.
-3. **No Shell Invocations**: The codebase contains **0** calls to `subprocess`, `os.system()`, `eval()`, `exec()`, or untrusted `pickle.loads()`.
-4. **Strict Size Guard**: Uploads exceeding 10 MB are rejected immediately with HTTP 413 before memory exhaustion can occur.
-5. **Safe Fallback**: Corrupt or malformed PE headers are trapped safely with zero-point benign fallback, preventing crash-based denial of service.
+TrojanGuard guarantees strict defensive non-execution safety and process isolation:
+1. **Isolated Analysis Worker**: Untrusted uploads are processed in an isolated worker process (`backend/app/sandbox/worker.py`) running with `unshare -rn` (no network namespace/interfaces) and strict POSIX rlimits (5s CPU, 512 MB virtual RAM, 0 bytes file creation, 32 open descriptors, 10s process-group timeout).
+2. **Strict Invariant on Subprocess**: `subprocess` is used **strictly** to launch our own internal worker script with a fixed, invariant argument list. Uploaded bytes and filenames are never passed in the command line or environment; uploaded data is streamed exclusively via stdin.
+3. **No Shell Invocations or Arbitrary Execution**: The codebase contains **0** calls to `os.system()`, `eval()`, `exec()`, or untrusted `pickle.loads()`. Uploaded code is never executed, imported, or run.
+4. **Strict Size Guard**: Uploads exceeding 10 MB are rejected immediately with HTTP 413 before the worker even starts.
+5. **Safe Fallback**: Corrupt or malformed PE headers are trapped safely with limited static analysis warnings, preventing parser crashes.
+
+---
+
+### Q18: Why is it called an "Isolated Analysis Worker" and not a "Malware Sandbox"?
+**Answer:**
+Academic honesty about scope. A "malware sandbox" (like Cuckoo or CAPEv2) executes live binaries in a virtualized guest OS and observes live API hooks, kernel events, and network packets.
+TrojanGuard's worker is an OS-level parser isolation boundary (namespaces + rlimits). It protects the host and backend from file parser bugs, infinite loops, and memory bombs during static inspection, but **never executes the uploaded binary**. Calling it a "malware sandbox" would be inaccurate and misleading.
+
+---
+
+### Q19: How is model training sandboxed?
+**Answer:**
+The launcher `scripts/train_real_sandboxed.sh` runs the real-data training pipeline inside an isolated Linux network namespace (`unshare -rn`), ensuring that model training cannot make outbound or inbound network calls. It also verifies dataset SHA-256 integrity against `ml/real/DATASET.sha256` prior to running, and enforces 6 GB memory and 600s CPU limits.

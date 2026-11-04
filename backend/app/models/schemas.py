@@ -194,6 +194,7 @@ class AnalysisReport(BaseModel):
     network_events: list[NetworkEventRecord] = Field(default_factory=list)
     iocs: list[IocRecord] = Field(default_factory=list)
     recommended_steps: list[str] = Field(default_factory=list)
+    sandbox: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +222,7 @@ class HealthResponse(BaseModel):
     trained_on_synthetic: bool = True
     python_version: str
     app_version: str  # Application version (e.g. '0.1.0')
+    sandbox: dict[str, Any] | None = None  # Isolated analysis worker status
 
 
 

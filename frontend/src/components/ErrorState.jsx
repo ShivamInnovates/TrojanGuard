@@ -5,7 +5,6 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
  * ErrorState component
  *
  * Visual error presentation with backend failure details and retry callback.
- * Utilitarian, flat styling without neon glows or oversized icon tiles.
  */
 export default function ErrorState({
   title = 'Failed to Load Intelligence',
@@ -17,20 +16,31 @@ export default function ErrorState({
   return (
     <div
       role="alert"
-      className={`rounded-[4px] border p-5 flex flex-col items-center justify-center text-center bg-[var(--color-surface-1)] ${className}`}
+      className={`rounded-lg border p-6 flex flex-col items-center justify-center text-center ${className}`}
       style={{
-        borderColor: 'rgba(239, 68, 68, 0.3)',
+        backgroundColor: 'var(--color-risk-critical-bg)',
+        borderColor: 'hsl(0 50% 25%)',
       }}
     >
-      <AlertCircle size={20} className="text-[var(--color-risk-critical)] mb-2" aria-hidden="true" />
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+        style={{
+          backgroundColor: 'hsl(0 40% 16%)',
+          color: 'var(--color-risk-critical)',
+          border: '1px solid hsl(0 50% 30%)',
+        }}
+      >
+        <AlertCircle size={24} />
+      </div>
 
       <h4
-        className="text-xs font-semibold font-mono text-[var(--color-risk-critical)]"
+        className="text-sm font-semibold uppercase tracking-wider font-mono"
+        style={{ color: 'var(--color-risk-critical)' }}
       >
         {title}
       </h4>
 
-      <p className="mt-1 text-xs text-[var(--color-text-secondary)] max-w-md leading-normal font-sans">
+      <p className="mt-1 text-xs text-[var(--color-text-secondary)] max-w-md leading-relaxed font-sans">
         {message}
       </p>
 
@@ -38,9 +48,22 @@ export default function ErrorState({
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-mono font-medium px-3 py-1.5 rounded-[3px] transition-colors cursor-pointer bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-surface-3)]"
+          className="mt-4 inline-flex items-center gap-2 text-xs font-mono font-medium px-4 py-2 rounded transition-colors shadow-sm cursor-pointer"
+          style={{
+            backgroundColor: 'var(--color-surface-2)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-surface-3)'
+            e.currentTarget.style.borderColor = 'var(--color-accent)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-surface-2)'
+            e.currentTarget.style.borderColor = 'var(--color-border)'
+          }}
         >
-          <RefreshCw size={12} className="text-[var(--color-text-muted)]" />
+          <RefreshCw size={14} className="text-[var(--color-accent)]" />
           <span>{retryLabel}</span>
         </button>
       )}

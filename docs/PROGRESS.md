@@ -425,8 +425,9 @@ docs/PROGRESS.md           (acceptance checklist completed with verified evidenc
 ```
 
 ### Edge Case & Security Audit Results
-- **Codebase Execution Audit**:
-  - Full codebase scan for `subprocess`, `os.system`, `eval(`, `exec(`, `pickle.loads`: **0 occurrences found across `backend/` and `ml/`**.
+- **Codebase Execution Audit & Subprocess Invariant**:
+  - `subprocess`: Used **strictly** to launch our internal isolated analysis worker script (`backend/app/sandbox/worker.py`) with fixed, invariant argument lists (`["unshare", "-rn", python, "-I", worker.py]`). Never executes uploaded content. Never uses user input in command lines or environment variables. Uploaded bytes are piped strictly over `stdin`.
+  - Zero occurrences of `os.system`, `eval(`, `exec(`, or untrusted `pickle.loads` found across `backend/` and `ml/`.
   - `joblib.load`: used exclusively on static, pre-packaged model files (`ml/model.pkl` and `ml/real/model_real.pkl`). Never executed on user-uploaded bytes or network input.
 - **Empty Database Behavior**:
   - Verified across `/api/dashboard`, `/api/history`, `/api/threats`, `/api/demo/scenarios`, `/api/model/real/metrics`.
@@ -480,7 +481,22 @@ docs/PROGRESS.md        (updated with complete Phase 7 & 8 verification)
 | 9 | Results page shows evidence, events, risk, IOCs | **PASS** | `/analysis/{id}` renders raw points table summing to final score, rule-trigger rationale, telemetry event logs, and synthetic IOC badge. |
 | 10 | History loads saved analyses | **PASS** | `/history` supports server-side search, classification/severity filtering, and 10-item pagination with query param synchronization. |
 | 11 | ML training + inference demonstrated | **PASS** | Synthetic 9-feature RF trained (seed 42); real CIC-MalMem-2022 51-feature RF trained with evaluations A/B/C and ablations on `/model`. |
-| 12 | SHA-256 computed; file never executed | **PASS** | In-memory SHA-256 computation via `hashlib.sha256()`. Security audit verified 0 subprocess/exec/eval/pickle execution of uploads. |
+| 12 | SHA-256 computed; file never executed | **PASS** | In-memory SHA-256 computation via `hashlib.sha256()`. Security audit verified 0 subprocess/exec/eval/pickle execution of uploads. Subprocess is strictly constrained to launching the isolated analysis worker with invariant arguments and stdin streaming. |
 | 13 | Errors + empty states do not crash app | **PASS** | Tested empty database (0 records), backend-down connection errors, 413 oversized files, corrupt PEs, and invalid JSON vectors. |
 | 14 | README complete | **PASS** | Comprehensive documentation including architecture, installation, demo walkthrough, threat scoring model, viva questions, and honesty disclosures. |
 | 15 | No nonfunctional buttons / static placeholders | **PASS** | All navigation links, file dropzones, demo buttons, search inputs, pagination controls, and inference testers are functional. |
+
+---
+
+## Phase 9: Isolated Analysis Worker & Sandboxed Training Launcher
+
+### Deliverables
+1. `backend/app/sandbox/worker.py`: Standalone script running static analysis only (hash, size, entropy, magic-byte type, pefile metadata via fast_load). 0 network/DB imports, 0 file writes, strict JSON stdout.
+2. `backend/app/sandbox/runner.py`: `run_in_sandbox(filename, data) -> StaticResult`. Executes worker with Python `-I`, `unshare -rn` network namespace isolation (detected and rechecked, configurable via `SANDBOX_MODE="best_effort" | "strict"`), POSIX rlimits (5s CPU, 512 MB virtual memory, 0 bytes file creation, 32 open descriptors, 0 core dumps), 10s process-group timeout with `os.killpg`, fresh temporary working directory, stripped minimal environment, 1 MB stdout limit.
+3. `POST /api/analyze` integration: Direct execution of `run_in_sandbox` for uploads (in-process fallback completely removed). Failure trapped and returned as HTTP 422 with clear reason.
+4. `GET /api/analysis/{id}`: Returns `sandbox` metadata dictionary (`used`, `network_isolated`, `rlimits_applied`, `timeout_s`, `duration_ms`, `status`). For demo runs: `status="not_applicable"`.
+5. `GET /api/health`: Exposes sandbox capability (`available`, `network_isolation`, `mode`).
+6. `frontend/src/pages/AnalysisDetail.jsx`: Renders "Analysis isolation" block showing network isolation, resource limits, worker duration, and status for uploads; displays "Not applicable (simulated scenario)" for demo analyses.
+7. `scripts/train_real_sandboxed.sh`: Executable training launcher verifying dataset SHA-256 (`624ecb6c9229cf62bd3b8f65d23a2b132760e6bada458aa46eee134a313840c4`), executing `train_real.py` under `unshare -rn` (no network) with 6 GB memory and 600s CPU limits, and confirming output model and metrics are updated.
+8. `tests/test_sandbox.py`: 12 automated tests covering parity, limits, network failure, timeout, OOM, write prevention, stdout cap, 10MB bounds, concurrency, and health reporting. All passing.
+
